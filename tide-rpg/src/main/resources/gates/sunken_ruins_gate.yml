@@ -1,0 +1,14 @@
+id: sunken_ruins_gate
+world: world
+closed_material: COPPER_GRATE
+open_states: [LOW_TIDE]
+blocks:
+  - { x: -150, y: 60, z: -160 }
+  - { x: -150, y: 61, z: -160 }
+  - { x: -150, y: 62, z: -160 }
+  - { x: -149, y: 60, z: -160 }
+  - { x: -149, y: 61, z: -160 }
+  - { x: -149, y: 62, z: -160 }
+  - { x: -148, y: 60, z: -160 }
+  - { x: -148, y: 61, z: -160 }
+  - { x: -148, y: 62, z: -160 }

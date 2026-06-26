@@ -25,3 +25,267 @@ web-server:
   enabled: true
   port: 8080
 
+# Resource Pack configuration
+resource-pack:
+  enabled: true
+  url: "https://example.com/tide-resource-pack.zip"
+  hash: "1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t"
+  force: false
+  prompt: "&bProject Tide 전용 리소스팩&7을 적용합니다."
+
+# Sound & Particle Visual/Audio Effects Configuration
+effects:
+  tide_change_high:
+    title: "&b🌊 밀물의 조류"
+    subtitle: "&7성장 및 채집 효율이 증가합니다."
+    title-fade-in-ticks: 10
+    title-stay-ticks: 40
+    title-fade-out-ticks: 10
+    sounds:
+      - name: "ui.toast.challenge_complete"
+        volume: 1.0
+        pitch: 1.2
+      - name: "ambient.underwater.enter"
+        volume: 0.8
+        pitch: 1.0
+    particles:
+      - type: "WATER_SPLASH"
+        count: 50
+        spread-x: 1.0
+        spread-y: 0.5
+        spread-z: 1.0
+        speed: 0.1
+    action-bar: "&b밀물이 시작되었습니다!"
+
+  tide_change_low:
+    title: "&6💨 썰물의 메마름"
+    subtitle: "&7야생 채집 효율이 감소하고 전용 구역이 활성화됩니다."
+    title-fade-in-ticks: 10
+    title-stay-ticks: 40
+    title-fade-out-ticks: 10
+    sounds:
+      - name: "block.water.ambient"
+        volume: 1.0
+        pitch: 0.5
+    particles:
+      - type: "SMOKE"
+        count: 30
+        spread-x: 1.0
+        spread-y: 0.5
+        spread-z: 1.0
+        speed: 0.05
+    action-bar: "&6썰물이 시작되었습니다!"
+
+  tide_change_spring:
+    title: "&e🌟 사리의 번영"
+    subtitle: "&d최고의 수확량과 높은 난이도의 몹이 등장합니다!"
+    title-fade-in-ticks: 10
+    title-stay-ticks: 60
+    title-fade-out-ticks: 20
+    sounds:
+      - name: "entity.ender_dragon.growl"
+        volume: 1.0
+        pitch: 1.0
+    particles:
+      - type: "TOTEM_OF_UNDYING"
+        count: 100
+        spread-x: 1.5
+        spread-y: 1.0
+        spread-z: 1.5
+        speed: 0.2
+    action-bar: "&e사리 시기가 시작되었습니다!"
+
+  tide_change_blood_moon:
+    title: "&c🩸 블러드문 강림"
+    subtitle: "&4하늘이 붉어지며 강력한 정예 몹들이 습격해옵니다."
+    title-fade-in-ticks: 15
+    title-stay-ticks: 60
+    title-fade-out-ticks: 20
+    sounds:
+      - name: "entity.wither.spawn"
+        volume: 1.0
+        pitch: 0.8
+    particles:
+      - type: "LAVA"
+        count: 80
+        spread-x: 1.5
+        spread-y: 1.0
+        spread-z: 1.5
+        speed: 0.2
+    action-bar: "&c블러드문이 떠올랐습니다!"
+
+  tide_change_blood_tide:
+    title: "&4🩸🌟 블러드 사리 강림"
+    subtitle: "&0최악의 공포와 최고의 보상이 공존합니다."
+    title-fade-in-ticks: 20
+    title-stay-ticks: 80
+    title-fade-out-ticks: 20
+    sounds:
+      - name: "entity.wither.spawn"
+        volume: 1.2
+        pitch: 0.6
+      - name: "entity.ender_dragon.growl"
+        volume: 1.0
+        pitch: 0.8
+    particles:
+      - type: "LAVA"
+        count: 150
+        spread-x: 2.0
+        spread-y: 1.0
+        spread-z: 2.0
+        speed: 0.3
+    action-bar: "&4블러드 사리 시작! 극도의 위협에 대비하세요!"
+
+  death_sweep:
+    sounds:
+      - name: "entity.elder_guardian.curse"
+        volume: 1.0
+        pitch: 0.7
+    particles:
+      - type: "BUBBLE_POP"
+        count: 60
+        spread-x: 1.0
+        spread-y: 1.0
+        spread-z: 1.0
+        speed: 0.1
+
+  grave_create:
+    sounds:
+      - name: "block.stone.break"
+        volume: 1.0
+        pitch: 0.8
+    particles:
+      - type: "CRIT"
+        count: 40
+        spread-x: 0.5
+        spread-y: 0.5
+        spread-z: 0.5
+        speed: 0.05
+
+  grave_reclaim:
+    sounds:
+      - name: "entity.item.pickup"
+        volume: 1.0
+        pitch: 1.2
+      - name: "block.iron_door.open"
+        volume: 0.8
+        pitch: 1.5
+    particles:
+      - type: "HAPPY_VILLAGER"
+        count: 30
+        spread-x: 0.5
+        spread-y: 1.0
+        spread-z: 0.5
+        speed: 0.1
+
+  forge_success_low:
+    sounds:
+      - name: "block.anvil.use"
+        volume: 1.0
+        pitch: 1.4
+    particles:
+      - type: "HAPPY_VILLAGER"
+        count: 20
+        spread-x: 0.5
+        spread-y: 0.5
+        spread-z: 0.5
+        speed: 0.05
+
+  forge_success_high:
+    title: "&d✨ 강화 성공! ✨"
+    subtitle: "&f장비가 새로운 경지에 도달했습니다."
+    sounds:
+      - name: "ui.toast.challenge_complete"
+        volume: 1.0
+        pitch: 1.4
+      - name: "entity.player.levelup"
+        volume: 0.8
+        pitch: 1.2
+    particles:
+      - type: "TOTEM_OF_UNDYING"
+        count: 100
+        spread-x: 0.8
+        spread-y: 0.8
+        spread-z: 0.8
+        speed: 0.2
+
+  forge_fail:
+    title: "&c💥 강화 실패"
+    subtitle: "&7불완전한 에너지로 인해 등급이 하락했습니다."
+    sounds:
+      - name: "block.anvil.land"
+        volume: 1.0
+        pitch: 0.5
+      - name: "entity.item.break"
+        volume: 0.8
+        pitch: 0.8
+    particles:
+      - type: "LARGE_SMOKE"
+        count: 40
+        spread-x: 0.5
+        spread-y: 0.5
+        spread-z: 0.5
+        speed: 0.05
+
+  fishing_qte_perfect:
+    title: "&a PERFECT! &f"
+    subtitle: "&b완벽한 손맛으로 진주를 낚았습니다!"
+    sounds:
+      - name: "entity.experience_orb.pickup"
+        volume: 1.0
+        pitch: 1.5
+    particles:
+      - type: "TOTEM_OF_UNDYING"
+        count: 30
+        spread-x: 0.5
+        spread-y: 0.5
+        spread-z: 0.5
+        speed: 0.1
+
+  fishing_qte_good:
+    sounds:
+      - name: "entity.experience_orb.pickup"
+        volume: 0.8
+        pitch: 1.0
+    particles:
+      - type: "HAPPY_VILLAGER"
+        count: 15
+        spread-x: 0.3
+        spread-y: 0.3
+        spread-z: 0.3
+        speed: 0.05
+
+  elite_spawn:
+    sounds:
+      - name: "entity.zombie.villager.cure"
+        volume: 0.8
+        pitch: 1.5
+    particles:
+      - type: "WITCH_SPELL"
+        count: 40
+        spread-x: 0.8
+        spread-y: 1.0
+        spread-z: 0.8
+        speed: 0.1
+
+  nemesis_warn:
+    title: "&4💀 [네메시스 각성] 💀"
+    subtitle: "&c복수의 화신이 당신을 사냥하러 옵니다!"
+    title-fade-in-ticks: 10
+    title-stay-ticks: 70
+    title-fade-out-ticks: 20
+    sounds:
+      - name: "entity.wither.spawn"
+        volume: 1.0
+        pitch: 0.5
+      - name: "entity.elder_guardian.curse"
+        volume: 0.8
+        pitch: 0.6
+    particles:
+      - type: "DRAGON_BREATH"
+        count: 60
+        spread-x: 1.0
+        spread-y: 1.5
+        spread-z: 1.0
+        speed: 0.1
+

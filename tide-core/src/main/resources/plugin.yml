@@ -18,6 +18,12 @@ commands:
   hardcore:
     description: 하드 모드를 켜거나 끕니다.
     usage: /hardcore
+  menu:
+    description: 메인 메뉴를 엽니다 (Shift + F로도 실행 가능).
+    usage: /menu
+  guide:
+    description: 서버 시스템 가이드(튜토리얼)를 엽니다.
+    usage: /guide
 
 permissions:
   tide.admin:

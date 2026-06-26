@@ -1,0 +1,26 @@
+id: bloodmoon_resonance_armor
+display_name: "§4[블러드문 공명의 갑주]"
+material: NETHERITE_CHESTPLATE
+custom_model_data: 1301
+gear_score: 280
+tier: 2
+resonance: BLOOD_MOON
+
+base_stats:
+  damage: 0
+  defense: 14
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 2
+
+socket_count: 1
+socket_max: 2
+
+sell_price: 60
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"

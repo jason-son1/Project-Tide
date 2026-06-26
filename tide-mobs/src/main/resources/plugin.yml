@@ -10,3 +10,6 @@ commands:
   bounty:
     description: 현상금 보드를 엽니다.
     usage: /bounty
+  bountycontract:
+    description: 네메시스 현상금 대행 계약을 등록하거나 게시판을 엽니다.
+    usage: /bountycontract <post <선불금> <성공보수>|list>

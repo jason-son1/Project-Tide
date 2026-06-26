@@ -61,16 +61,22 @@ public final class FishingQteListener implements Listener {
     }
 
     private void grade(Player player, long reactionMs) {
+        com.tide.core.effect.EffectEngine effectEngine = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.effect.EffectEngine.class);
         if (reactionMs <= PERFECT_WINDOW_MS) {
             int pearls = ThreadLocalRandom.current().nextInt(1, 4);
             economyAPI.addPearl(player.getUniqueId(), pearls);
             player.addPotionEffect(new PotionEffect(PotionEffectType.LUCK, 20 * 60 * 5, 0));
             player.sendMessage("§a§l[완벽한 손맛!] §f진주 " + pearls + "개 §7+ §d행운 물약 효과 5분");
+            if (effectEngine != null) {
+                effectEngine.playEffect(player, "fishing_qte_perfect");
+            }
         } else if (reactionMs <= GOOD_WINDOW_MS) {
             long clam = ThreadLocalRandom.current().nextInt(20, 51);
             economyAPI.addClam(player.getUniqueId(), clam);
             player.sendMessage("§e[좋은 손맛] §6조개 " + clam + "개 획득");
+            if (effectEngine != null) {
+                effectEngine.playEffect(player, "fishing_qte_good");
+            }
         }
-        // Slower than GOOD_WINDOW_MS: still a normal vanilla catch, no bonus.
     }
 }

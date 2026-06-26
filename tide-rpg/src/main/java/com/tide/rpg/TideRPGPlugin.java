@@ -1,7 +1,9 @@
 package com.tide.rpg;
 
+import java.io.File;
 import com.tide.core.economy.EconomyAPI;
 import com.tide.core.reload.ReloadManager;
+import com.tide.core.tide.TideStateProvider;
 import com.tide.rpg.combat.CombatListener;
 import com.tide.rpg.combat.DefensiveListener;
 import com.tide.rpg.combat.RuneEffectDispatcher;
@@ -23,6 +25,14 @@ import com.tide.rpg.rune.RuneRegistry;
 import com.tide.rpg.sell.SellAllCommand;
 import com.tide.rpg.sell.SellAllManager;
 import com.tide.rpg.shop.ShopGUI;
+import com.tide.rpg.tideext.BioluminescentHarvestListener;
+import com.tide.rpg.tideext.BioluminescentManager;
+import com.tide.rpg.tideext.GateRegistry;
+import com.tide.rpg.tideext.OverdriveListener;
+import com.tide.rpg.tideext.OverdriveManager;
+import com.tide.rpg.tideext.ResonanceListener;
+import com.tide.rpg.tideext.TidalCurrentManager;
+import com.tide.rpg.tideext.TidalGateListener;
 import com.tide.rpg.shop.ShopListener;
 import com.tide.rpg.zone.ZoneGuardListener;
 import com.tide.rpg.zone.ZoneRegistry;
@@ -39,7 +49,9 @@ public final class TideRPGPlugin extends JavaPlugin {
 
     private static final String[] SAMPLE_ITEMS = {
             "iron_sword_t1", "flame_sword_t1", "leather_armor_t1", "reinforce_stone", "protection_scroll",
-            "soul_fragment", "nemesis_token", "tide_bell"
+            "soul_fragment", "nemesis_token", "tide_bell",
+            "tide_resonance_blade", "bloodmoon_resonance_armor", "anchor_boots",
+            "tide_extractor", "bioluminescent_essence"
     };
     private static final String[] SAMPLE_RUNES = {
             "rune_lifesteal_1", "rune_lifesteal_2", "rune_lightning_1"
@@ -49,6 +61,9 @@ public final class TideRPGPlugin extends JavaPlugin {
     };
     private static final String[] SAMPLE_FISHING_HOLES = {
             "mythic_fishing_hole"
+    };
+    private static final String[] SAMPLE_GATES = {
+            "sunken_ruins_gate"
     };
 
     private ItemRegistry itemRegistry;
@@ -60,6 +75,9 @@ public final class TideRPGPlugin extends JavaPlugin {
     private ForgeGUI forgeGUI;
     private DeepMineManager deepMineManager;
     private GearScoreCalculator gearScoreCalculator;
+    private TidalCurrentManager tidalCurrentManager;
+    private BioluminescentManager bioluminescentManager;
+    private GateRegistry gateRegistry;
 
     @Override
     public void onEnable() {
@@ -67,8 +85,9 @@ public final class TideRPGPlugin extends JavaPlugin {
         saveDefaultConfig();
 
         EconomyAPI economyAPI = lookupService(EconomyAPI.class);
-        if (economyAPI == null) {
-            getLogger().severe("TideCore의 EconomyAPI를 찾을 수 없습니다. TideCore가 먼저 로드되어야 합니다.");
+        TideStateProvider tideStateProvider = lookupService(TideStateProvider.class);
+        if (economyAPI == null || tideStateProvider == null) {
+            getLogger().severe("TideCore의 서비스(EconomyAPI/TideStateProvider)를 찾을 수 없습니다. TideCore가 먼저 로드되어야 합니다.");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -96,7 +115,7 @@ public final class TideRPGPlugin extends JavaPlugin {
         Bukkit.getServicesManager().register(ItemFactory.class, itemFactory, this, org.bukkit.plugin.ServicePriority.Normal);
         Bukkit.getServicesManager().register(GearScoreCalculator.class, gearScoreCalculator, this, org.bukkit.plugin.ServicePriority.Normal);
 
-        RuneEffectDispatcher dispatcher = new RuneEffectDispatcher();
+        RuneEffectDispatcher dispatcher = new RuneEffectDispatcher(tideStateProvider);
         getServer().getPluginManager().registerEvents(new CombatListener(dispatcher), this);
         getServer().getPluginManager().registerEvents(new DefensiveListener(dispatcher), this);
         getServer().getPluginManager().registerEvents(new ShopListener(economyAPI, itemFactory), this);
@@ -109,6 +128,23 @@ public final class TideRPGPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TideBellListener(), this);
         getServer().getPluginManager().registerEvents(new TideVaultListener(itemFactory), this);
 
+        // 심화 확장 기능 백서 Phase 1: Tide Resonance Set + Tidal Overdrive + Tidal Currents
+        getServer().getPluginManager().registerEvents(new ResonanceListener(tideStateProvider), this);
+        OverdriveManager overdriveManager = new OverdriveManager();
+        getServer().getPluginManager().registerEvents(new OverdriveListener(overdriveManager, tideStateProvider), this);
+        setupTidalCurrents(tideStateProvider);
+
+        this.bioluminescentManager = new BioluminescentManager(this, tideStateProvider);
+        bioluminescentManager.start();
+        getServer().getPluginManager().registerEvents(
+                new BioluminescentHarvestListener(bioluminescentManager, itemFactory), this);
+
+        this.gateRegistry = new GateRegistry(this);
+        gateRegistry.reload();
+        TidalGateListener tidalGateListener = new TidalGateListener(gateRegistry);
+        getServer().getPluginManager().registerEvents(tidalGateListener, this);
+        tidalGateListener.applyAll(tideStateProvider.getCurrentState());
+
         setupDeepMine();
 
         ReloadManager reloadManager = lookupService(ReloadManager.class);
@@ -117,6 +153,7 @@ public final class TideRPGPlugin extends JavaPlugin {
             reloadManager.register("runes", runeRegistry);
             reloadManager.register("zones", zoneRegistry);
             reloadManager.register("fishingholes", fishingHoleRegistry);
+            reloadManager.register("gates", gateRegistry);
         }
 
         getCommand("shop").setExecutor(this);
@@ -133,6 +170,22 @@ public final class TideRPGPlugin extends JavaPlugin {
         if (deepMineManager != null) {
             deepMineManager.stop();
         }
+        if (tidalCurrentManager != null) {
+            tidalCurrentManager.stop();
+        }
+        if (bioluminescentManager != null) {
+            bioluminescentManager.stop();
+        }
+    }
+
+    private void setupTidalCurrents(TideStateProvider tideStateProvider) {
+        long transitionWindow = getConfig().getLong("tidal_currents.transition-window-seconds", 20);
+        double strength = getConfig().getDouble("tidal_currents.strength", 0.25);
+        double shoreX = getConfig().getDouble("tidal_currents.shore-direction.x", 1.0);
+        double shoreZ = getConfig().getDouble("tidal_currents.shore-direction.z", 0.0);
+        this.tidalCurrentManager = new TidalCurrentManager(this, tideStateProvider, transitionWindow, strength,
+                new org.bukkit.util.Vector(shoreX, 0, shoreZ));
+        tidalCurrentManager.start();
     }
 
     private void setupDeepMine() {
@@ -175,16 +228,34 @@ public final class TideRPGPlugin extends JavaPlugin {
 
     private void extractBundledSamples() {
         for (String id : SAMPLE_ITEMS) {
-            saveResource("items/" + id + ".yml", false);
+            File file = new File(getDataFolder(), "items/" + id + ".yml");
+            if (!file.exists()) {
+                saveResource("items/" + id + ".yml", false);
+            }
         }
         for (String id : SAMPLE_RUNES) {
-            saveResource("runes/" + id + ".yml", false);
+            File file = new File(getDataFolder(), "runes/" + id + ".yml");
+            if (!file.exists()) {
+                saveResource("runes/" + id + ".yml", false);
+            }
         }
         for (String id : SAMPLE_ZONES) {
-            saveResource("zones/" + id + ".yml", false);
+            File file = new File(getDataFolder(), "zones/" + id + ".yml");
+            if (!file.exists()) {
+                saveResource("zones/" + id + ".yml", false);
+            }
         }
         for (String id : SAMPLE_FISHING_HOLES) {
-            saveResource("fishingholes/" + id + ".yml", false);
+            File file = new File(getDataFolder(), "fishingholes/" + id + ".yml");
+            if (!file.exists()) {
+                saveResource("fishingholes/" + id + ".yml", false);
+            }
+        }
+        for (String id : SAMPLE_GATES) {
+            File file = new File(getDataFolder(), "gates/" + id + ".yml");
+            if (!file.exists()) {
+                saveResource("gates/" + id + ".yml", false);
+            }
         }
     }
 

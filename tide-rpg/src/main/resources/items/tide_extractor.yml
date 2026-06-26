@@ -1,0 +1,23 @@
+id: tide_extractor
+display_name: "§a생물발광 채집기"
+material: SHEARS
+custom_model_data: 1400
+gear_score: 0
+tier: 1
+
+base_stats:
+  damage: 0
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 0
+
+socket_count: 0
+socket_max: 0
+
+sell_price: 0
+
+lore_template:
+  - "§7사리(Spring Tide) 야간에 해안가에서"
+  - "§7발광 포자 블록을 채집할 때 사용합니다."

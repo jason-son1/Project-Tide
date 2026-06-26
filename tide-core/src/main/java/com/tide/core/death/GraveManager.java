@@ -57,6 +57,7 @@ public final class GraveManager {
         gravesByOwner.put(owner.getUniqueId(), grave);
         gravesByStandId.put(armorStand.getUniqueId(), grave);
         updateName(grave);
+        com.tide.core.TideCorePlugin.getInstance().getEffectEngine().playEffect(location, "grave_create");
         return grave;
     }
 
@@ -83,6 +84,7 @@ public final class GraveManager {
             }
         }
         removeGrave(grave);
+        com.tide.core.TideCorePlugin.getInstance().getEffectEngine().playEffect(player, "grave_reclaim");
         return true;
     }
 

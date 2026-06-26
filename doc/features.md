@@ -831,3 +831,174 @@ TideMobs.jar  (TideCore 필수, TideRPG 선택)
       nemesis.db     ← 네메시스 데이터 (SQLite, YAML 폴백)
       nemesis.yml    ← SQLite 초기화 실패 시 폴백
 ```
+
+---
+
+## 8. 변경 이력 (Changelog)
+
+### v0.1.0 → v0.1.1 (2026-06-26)
+
+---
+
+#### 🔧 빌드 & 안정성
+
+**[수정] sqlite-jdbc relocation 제거 — `UnsatisfiedLinkError` 해결**
+
+| 항목 | 내용 |
+|------|------|
+| 수정 파일 | `tide-core/pom.xml`, `tide-mobs/pom.xml` |
+| 원인 | `maven-shade-plugin`이 Java 클래스 경로는 재배치하지만 JAR 내부 네이티브 `.dll` 리소스 경로 문자열은 재배치하지 않음 → sqlite-jdbc JNI 네이티브 라이브러리 로딩 실패 |
+| 증상 | TideCore 활성화 시 크래시 → TideRPG/TideMobs도 연쇄 `NoClassDefFoundError` |
+| 수정 | pom.xml `<relocations>` 블록 완전 제거. sqlite-jdbc를 `org.sqlite` 원래 패키지 그대로 shading. |
+
+**[수정] `EconomyManager` / `NemesisManager` — `catch (Exception)` → `catch (Throwable)`**
+
+- `UnsatisfiedLinkError`는 `Error` 계열이라 `catch (Exception)` 블록에 잡히지 않아 YAML 폴백이 동작하지 않던 문제 수정.
+- `catch (Throwable)`로 변경 시 JVM 레벨 Error 포함 모든 예외를 잡아 YAML 폴백으로 자동 전환.
+
+---
+
+#### 🌐 TideCore — 내장 웹 서버 (TideWebServer.java)
+
+**[신규] `DatabaseHandler` — `/api/database/*` 엔드포인트 구현**
+
+| 엔드포인트 | 기능 |
+|------------|------|
+| `GET /api/database/economy` | `EconomyManager.getAllPlayers()` 순회 → uuid, name, clam, pearl, rep, hardMode JSON 배열 반환 |
+| `POST /api/database/economy` | Body `{uuid, clam?, pearl?, rep?, hardMode?}` → null 필드 건너뜀 → `updatePlayerEconomy()` 메인 스레드 예약 |
+| `GET /api/database/nemesis` | ServicesManager + 리플렉션으로 TideMobs `NemesisManager.getAllRecords()` 호출 → 레코드 JSON 배열 반환 |
+
+- **크로스 Jar 리플렉션 패턴**: TideCore가 TideMobs에 컴파일 의존성 없이 동작. TideMobs 미로드 시 빈 배열 반환 (에러 없음).
+
+**[신규] `StaticHandler` — React 앱 내장 서빙 + SPA 라우팅**
+
+- 정적 파일 서빙 우선순위: `plugins/TideCore/web/` 파일시스템 → JAR 내부 `/web/` 리소스 폴백.
+- 경로에 해당하는 파일이 없으면 `index.html` 반환 → React Router 클라이언트 사이드 라우팅 지원.
+- MIME 타입 자동 판별: `.html` / `.css` / `.js` / `.json` / `.png` / `.jpg` / `.svg` / `.ico`.
+- 모든 응답에 CORS 헤더 포함. OPTIONS preflight 자동 204 처리.
+
+**[개선] `ConfigsHandler` — POST 저장 후 카테고리별 자동 핫 리로드**
+
+- YAML 저장 직후 카테고리-리로드 대상 매핑에 따라 `ReloadManager.reload()` 메인 스레드 예약:
+
+| category | 자동 리로드 대상 |
+|----------|----------------|
+| item | items |
+| rune | runes |
+| mob / altar | mobs |
+| affix | affixes |
+| global/core | config |
+| global/rpg | items |
+
+**[신규] `EconomyManager` — 웹 API 연동 메서드 추가**
+
+```java
+// 웹 대시보드 전체 조회용
+Map<UUID, PlayerEconomy> getAllPlayers()
+
+// 웹 대시보드 수정용 (null 필드 = 변경 없음)
+void updatePlayerEconomy(UUID uuid, Long clam, Long pearl, Integer rep, Boolean hardMode)
+
+// Admin GUI 인플레이션 모니터용 (온라인 플레이어 캐시 기준)
+long getOnlineClamTotal()
+```
+
+---
+
+#### 🎮 TideRPG — 특수 아이템
+
+**[신규] `tide_bell` — 조종의 종 (YAML + 리스너)**
+
+```yaml
+id: tide_bell
+display_name: "§4§l[조종의 종]"
+material: BELL
+custom_model_data: 1008
+tier: 3
+sell_price: 500
+lore_template:
+  - "§7— 우클릭 시 블러드문을 강제 트리거합니다 —"
+```
+
+- **TideBellListener 동작**: `tide:item_id = tide_bell` PDC 보유 아이템 우클릭 시 `TideScheduler.forceState(TideState.BLOOD_MOON)` 호출 → `TideChangeEvent` 발행 → 전체 서버 조수 상태 즉시 블러드문 전환.
+- GS 0 (전투 장비 아님), Tier 3 (희귀 특수 아이템), 판매가 500 조개.
+
+---
+
+#### 🧟 TideMobs — 커스텀 몹 시스템
+
+**[개선] `CustomMobSpawnListener` — 스폰 로직 완전 구현**
+
+이전: 스폰 조건 체크만 있는 스텁 수준  
+이후: 완전 동작
+
+- **스폰 조건 3중 필터**: 월드 이름 / 바이옴 / 현재 TideState 모두 일치 필요. YAML에서 빈 리스트이면 "모두 허용".
+- **기본 변환 확률 15%**: 자연/스포너 스폰 중 15% 확률에서만 커스텀 몹 변환 시도.
+- **가중치 기반 선택**: 후보 풀의 weight 합산 후 비례 확률로 1종 선택.
+- **transform() 처리 내용**:
+  - PDC `tide:custom_mob_id` 기록.
+  - `custom_model_data > 0` 이면 PDC `tide:cmd` 기록 + 인간형 몹(Zombie/Skeleton)에 CMD 적용 헬멧 장착 → 리소스팩 모델 교체 지원.
+  - `display_name` 설정 + 항상 보이도록 지정.
+  - `hp_multiplier`, `damage_multiplier`, `movement_speed` Attribute 적용.
+  - YAML `affixes` 지정 시 `EliteProcessor.apply()` 재사용 → 정예 태그 + 접두사 효과 동시 적용.
+- **커스텀 드롭 처리**:
+  - 바닐라 드롭 전체 제거 후 YAML `drops` 처리.
+  - `item_id` → `ItemFactory.create()` → PDC 완비 아이템 드롭.
+  - `currency: clam/pearl` + `amount: [min, max]` 또는 고정값 → `EconomyAPI`로 직접 지급 + 채팅 메시지.
+  - `chance` 0.0~1.0 확률 적용.
+
+**[신규] `MobKeys` — `tide:custom_mob_id` PDC 키 추가**
+
+커스텀 몹 ID를 엔티티 PDC에 기록하는 키. 사망 이벤트에서 커스텀 몹 여부 식별에 사용.
+
+---
+
+#### 🖥 Web Customizer (tools/web-customizer)
+
+**[신규] `DatabaseTab.jsx` — DB 대시보드 탭**
+
+내장 웹 서버 API와 통신하는 React 컴포넌트.
+
+**경제(Economy) 서브탭**
+- `GET /api/database/economy` → 플레이어 목록 테이블.
+- 컬럼: 이름, UUID, 조개(Clam), 진주(Pearl), 평판(Rep), 하드모드.
+- 이름/UUID 실시간 검색 필터.
+- [편집] 버튼 → 인라인 편집: clam/pearl/rep 숫자 입력 + hardMode 체크박스 → [저장] → `POST /api/database/economy`.
+
+**네메시스(Nemesis) 서브탭**
+- `GET /api/database/nemesis` → 활성 네메시스 레코드 목록.
+- 컬럼: mobUuid, playerUuid, 원래 몹 이름, 접두사 목록, 처치 횟수, 활성 여부.
+- 이름/UUID 실시간 검색 필터. 조회 전용.
+
+**[개선] `api.js` — 신규 API 함수 추가**
+
+```javascript
+fetchEconomy()       // GET /api/database/economy
+updateEconomy(body)  // POST /api/database/economy  
+fetchNemesis()       // GET /api/database/nemesis
+```
+
+**[개선] `App.jsx`** — "🗄 데이터베이스" 탭 5번째로 등록.
+
+**[개선] `style.css`** — DatabaseTab 테이블·인라인 편집·서브탭 스타일 추가.
+
+**[개선] 생성기 탭 (MobTab / ItemTab / RuneTab)** — 배포 버튼 로직 통일, 에러 핸들링 개선.
+
+---
+
+#### 📦 JAR 내장 React 빌드 번들
+
+`tide-core/src/main/resources/web/` 경로로 React 빌드 결과물이 Git에 포함됨:
+
+```
+web/
+  index.html
+  assets/
+    index-CJObzpqz.js   ← React 앱 메인 번들
+    index-DQQjlmxv.js   ← 추가 번들
+    index-DRauM0HC.css  ← 스타일시트
+```
+
+- TideCore.jar Maven 빌드 시 해당 파일이 JAR 안 `/web/` 경로로 패키징됨.
+- `StaticHandler`가 `getResourceAsStream("/web/...")` 으로 로드.
+- **별도 파일시스템 배포 없이 TideCore.jar 하나만으로 웹 대시보드 완전 서빙 가능.**

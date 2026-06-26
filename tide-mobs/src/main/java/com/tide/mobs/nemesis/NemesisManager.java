@@ -157,9 +157,16 @@ public final class NemesisManager {
         mob.setGlowing(true);
         mob.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, Integer.MAX_VALUE, 1));
         mob.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, Integer.MAX_VALUE, 0));
-        mob.getWorld().spawnParticle(org.bukkit.Particle.FLAME, mob.getLocation(), 40, 1, 1, 1);
-        mob.getWorld().spawnParticle(org.bukkit.Particle.LARGE_SMOKE, mob.getLocation(), 40, 1, 1, 1);
-        victim.sendTitle("§4§l[네메시스 각성]", "§c" + record.getOriginalName() + "이(가) 당신을 노리고 있습니다!", 10, 70, 20);
+
+        com.tide.core.effect.EffectEngine effectEngine = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.effect.EffectEngine.class);
+        if (effectEngine != null) {
+            effectEngine.playEffect(victim, "nemesis_warn");
+            effectEngine.playEffect(mob.getLocation(), "nemesis_warn");
+        } else {
+            mob.getWorld().spawnParticle(org.bukkit.Particle.FLAME, mob.getLocation(), 40, 1, 1, 1);
+            mob.getWorld().spawnParticle(org.bukkit.Particle.LARGE_SMOKE, mob.getLocation(), 40, 1, 1, 1);
+            victim.sendTitle("§4§l[네메시스 각성]", "§c" + record.getOriginalName() + "이(가) 당신을 노리고 있습니다!", 10, 70, 20);
+        }
     }
 
     public void deactivate(NemesisRecord record) {

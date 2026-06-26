@@ -37,6 +37,15 @@ public final class ItemFactory {
         meta.getPersistentDataContainer().set(TideKeys.REINFORCE, PersistentDataType.INTEGER, 0);
         meta.getPersistentDataContainer().set(TideKeys.SOCKET_COUNT, PersistentDataType.INTEGER, definition.getSocketCount());
         meta.getPersistentDataContainer().set(TideKeys.CMD, PersistentDataType.INTEGER, definition.getCustomModelData());
+        if (definition.getResonance() != null && !definition.getResonance().isBlank()) {
+            meta.getPersistentDataContainer().set(TideKeys.RESONANCE, PersistentDataType.STRING, definition.getResonance());
+        }
+        if (definition.getAnchor() > 0) {
+            meta.getPersistentDataContainer().set(TideKeys.ANCHOR, PersistentDataType.INTEGER, definition.getAnchor());
+        }
+        if (definition.getOxygenCapacity() > 0) {
+            meta.getPersistentDataContainer().set(TideKeys.OXYGEN_CAPACITY, PersistentDataType.INTEGER, definition.getOxygenCapacity());
+        }
         itemStack.setItemMeta(meta);
 
         loreRenderer.render(itemStack);

@@ -1,0 +1,28 @@
+id: death_currency
+category: death
+order: 2
+icon: GOLD_INGOT
+title: "조개 · 진주 · 평판"
+summary: "조개는 기본 화폐, 진주는 희귀 화폐, 평판은 등급과 신뢰도를 나타냅니다."
+pages:
+  - |-
+    §6[조개 · 진주 · 평판]§r
+
+    §6조개(Clam)§r: 강화 비용, 상점
+    구매 등 일상적인 소비에
+    사용하는 기본 화폐.
+
+    §d진주(Pearl)§r: 룬 리롤, 보호
+    주문서 등 고급 소비에 쓰이는
+    희귀 화폐. 주로 낚시로 획득.
+  - |-
+    §e평판(Rep)§r: 현상금 완료,
+    네메시스 처치 등으로 쌓이며
+    평판 등급을 결정합니다.
+
+    §e/clam§r, §e/pearl§r 명령어로
+    현재 보유량을 확인할 수
+    있습니다.
+commands:
+  - "/clam"
+  - "/pearl"

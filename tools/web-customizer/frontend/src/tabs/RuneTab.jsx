@@ -5,6 +5,24 @@ import YamlPreviewPanel from "../components/YamlPreviewPanel.jsx";
 const RUNE_TYPES = ["lifesteal", "lightning", "slow", "shield", "berserk"];
 const GRADES = [1, 2, 3, 4, 5];
 
+const GEMINI_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-3.5-pro",
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-2.0-flash",
+  "gemini-2.0-pro",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro"
+];
+const CLAUDE_MODELS = [
+  "claude-4-6-sonnet",
+  "claude-4-5-sonnet",
+  "claude-4-0-haiku",
+  "claude-3-5-sonnet-20241022",
+  "claude-3-5-haiku-20241022"
+];
+
 export default function RuneTab({ loadedConfig, onClearLoaded }) {
   const [id, setId] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -20,12 +38,12 @@ export default function RuneTab({ loadedConfig, onClearLoaded }) {
   const [deployStatus, setDeployStatus] = useState("");
 
   const [aiProvider, setAiProvider] = useState(localStorage.getItem("ai_provider") || "gemini");
-  const [aiModel, setAiModel] = useState(localStorage.getItem("ai_model") || "gemini-2.5-flash");
+  const [aiModel, setAiModel] = useState(localStorage.getItem("ai_model") || "gemini-3.5-flash");
   const [aiApiKey, setAiApiKey] = useState(localStorage.getItem("ai_api_key") || "");
 
   function handleProviderChange(prov) {
     setAiProvider(prov);
-    const defaultModel = prov === "gemini" ? "gemini-2.5-flash" : "claude-3-5-sonnet-20241022";
+    const defaultModel = prov === "gemini" ? "gemini-3.5-flash" : "claude-4-6-sonnet";
     setAiModel(defaultModel);
     localStorage.setItem("ai_provider", prov);
     localStorage.setItem("ai_model", defaultModel);
@@ -102,32 +120,72 @@ export default function RuneTab({ loadedConfig, onClearLoaded }) {
     }
   }
 
+  const isCustomModel = aiProvider === "gemini"
+    ? !GEMINI_MODELS.includes(aiModel)
+    : !CLAUDE_MODELS.includes(aiModel);
+
   return (
     <div className="tab-grid">
       <div className="form-panel">
         <h2>룬 생성기</h2>
-        <label>룬 ID<input value={id} onChange={(e) => setId(e.target.value)} placeholder="rune_lifesteal_3" /></label>
-        <label>표시 이름<input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="§c흡혈의 룬 III" /></label>
-        <label>타입
+        <label>
+          룬 ID
+          <input value={id} onChange={(e) => setId(e.target.value)} placeholder="rune_lifesteal_3" />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>룬 고유 식별자 명칭입니다. (예: rune_lifesteal_3)</span>
+        </label>
+        
+        <label>
+          표시 이름
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="§c흡혈의 룬 III" />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>게임 인게임 내 룬 아이템의 이름입니다. 색상 코드 지정 가능. (예: §c흡혈의 룬 III)</span>
+        </label>
+        
+        <label>
+          효과 타입
           <select value={type} onChange={(e) => setType(e.target.value)}>
             {RUNE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>룬이 활성화할 전투 시너지 효과의 유형입니다.</span>
         </label>
-        <label>등급
+        
+        <label>
+          룬 등급 (1~5)
           <select value={grade} onChange={(e) => setGrade(e.target.value)}>
             {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>룬의 품질 등급 단계입니다. 세트 시너지 및 융합 기능에 관여합니다.</span>
         </label>
-        <label>재질<input value={material} onChange={(e) => setMaterial(e.target.value.toUpperCase())} /></label>
-        <label>CustomModelData<input type="number" value={customModelData} onChange={(e) => setCustomModelData(e.target.value)} /></label>
-        <label>효과값: {effectValue}
+        
+        <label>
+          재질 (Material)
+          <input value={material} onChange={(e) => setMaterial(e.target.value.toUpperCase())} />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>아이템의 기본 바닐라 재질 유형입니다. (예: AMETHYST_SHARD)</span>
+        </label>
+        
+        <label>
+          CustomModelData 번호
+          <input type="number" value={customModelData} onChange={(e) => setCustomModelData(e.target.value)} />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>리소스팩 룬 텍스처를 맵핑할 고유 CMD 번호입니다.</span>
+        </label>
+        
+        <label>
+          효과치 (Effect Value): {effectValue}
           <input type="range" min="0" max="1" step="0.01" value={effectValue} onChange={(e) => setEffectValue(e.target.value)} />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>룬 효과의 성능 배율/확률 수치입니다. (예: 0.08 = 흡혈율 8%, 번개 발동률 8%)</span>
         </label>
 
         <fieldset>
-          <legend>융합 레시피 (선택)</legend>
-          <label>입력 룬 ID(한 단계 낮은 등급)<input value={fusionInputId} onChange={(e) => setFusionInputId(e.target.value)} placeholder="rune_lifesteal_2" /></label>
-          <label>융합 비용(조개)<input type="number" value={fusionCostClam} onChange={(e) => setFusionCostClam(e.target.value)} /></label>
+          <legend>룬 융합 레시피 (선택)</legend>
+          <label>
+            입력 재료 룬 ID
+            <input value={fusionInputId} onChange={(e) => setFusionInputId(e.target.value)} placeholder="rune_lifesteal_2" />
+            <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>대장간 융합 시 재료로 바칠 한 단계 낮은 하위 룬의 고유 ID입니다.</span>
+          </label>
+          <label>
+            융합 소모 비용 (조개)
+            <input type="number" value={fusionCostClam} onChange={(e) => setFusionCostClam(e.target.value)} />
+            <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>재료 룬 3개와 함께 상위 룬 융합을 위해 소모할 조개(Clam) 비용입니다.</span>
+          </label>
         </fieldset>
 
         <fieldset style={{ marginBottom: "12px", border: "1px dashed #475569" }}>
@@ -140,22 +198,51 @@ export default function RuneTab({ loadedConfig, onClearLoaded }) {
               </select>
             </label>
             <label style={{ flex: 1, margin: 0 }}>모델
-              <select value={aiModel} onChange={(e) => setAiModel(e.target.value)} style={{ padding: "4px 8px" }}>
+              <select 
+                value={
+                  aiProvider === "gemini"
+                    ? (GEMINI_MODELS.includes(aiModel) ? aiModel : "custom")
+                    : (CLAUDE_MODELS.includes(aiModel) ? aiModel : "custom")
+                } 
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "custom") {
+                    setAiModel("");
+                  } else {
+                    setAiModel(val);
+                    localStorage.setItem("ai_model", val);
+                  }
+                }} 
+                style={{ padding: "4px 8px" }}
+              >
                 {aiProvider === "gemini" ? (
                   <>
-                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                    <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                    <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                    {GEMINI_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+                    <option value="custom">직접 입력 (Custom)...</option>
                   </>
                 ) : (
                   <>
-                    <option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet</option>
-                    <option value="claude-3-5-haiku-20241022">claude-3-5-haiku</option>
+                    {CLAUDE_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+                    <option value="custom">직접 입력 (Custom)...</option>
                   </>
                 )}
               </select>
             </label>
           </div>
+          {isCustomModel && (
+            <label style={{ margin: "0 0 8px 0" }}>모델명 직접 입력
+              <input
+                type="text"
+                value={aiModel}
+                onChange={(e) => {
+                  setAiModel(e.target.value);
+                  localStorage.setItem("ai_model", e.target.value);
+                }}
+                placeholder={aiProvider === "gemini" ? "예: gemini-3.5-pro" : "예: claude-4-6-sonnet"}
+                style={{ padding: "6px 8px", fontSize: "12px" }}
+              />
+            </label>
+          )}
           <label style={{ margin: 0 }}>API Key (비워두면 서버 키 사용)
             <input
               type="password"

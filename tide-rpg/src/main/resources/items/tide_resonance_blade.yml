@@ -1,0 +1,26 @@
+id: tide_resonance_blade
+display_name: "§b[조수 공명의 검]"
+material: TRIDENT
+custom_model_data: 1300
+gear_score: 250
+tier: 2
+resonance: HIGH_TIDE
+
+base_stats:
+  damage: 22
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 3
+  defense_per_star: 0
+
+socket_count: 1
+socket_max: 3
+
+sell_price: 50
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"

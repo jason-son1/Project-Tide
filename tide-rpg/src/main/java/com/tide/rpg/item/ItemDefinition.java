@@ -22,11 +22,15 @@ public final class ItemDefinition {
     private final int socketMax;
     private final int sellPrice;
     private final List<String> loreTemplate;
+    private final String resonance;
+    private final int anchor;
+    private final int oxygenCapacity;
 
     private ItemDefinition(String id, String displayName, Material material, int customModelData,
                             int gearScore, int tier, int baseDamage, int baseDefense,
                             double damagePerStar, double defensePerStar, int socketCount,
-                            int socketMax, int sellPrice, List<String> loreTemplate) {
+                            int socketMax, int sellPrice, List<String> loreTemplate,
+                            String resonance, int anchor, int oxygenCapacity) {
         this.id = id;
         this.displayName = displayName;
         this.material = material;
@@ -41,6 +45,9 @@ public final class ItemDefinition {
         this.socketMax = socketMax;
         this.sellPrice = sellPrice;
         this.loreTemplate = loreTemplate;
+        this.resonance = resonance;
+        this.anchor = anchor;
+        this.oxygenCapacity = oxygenCapacity;
     }
 
     public static ItemDefinition parse(YamlConfiguration yaml) {
@@ -67,7 +74,10 @@ public final class ItemDefinition {
                 yaml.getInt("socket_count", 0),
                 yaml.getInt("socket_max", 0),
                 yaml.getInt("sell_price", 0),
-                yaml.getStringList("lore_template")
+                yaml.getStringList("lore_template"),
+                yaml.getString("resonance", null),
+                yaml.getInt("anchor", 0),
+                yaml.getInt("oxygen_capacity", 0)
         );
     }
 
@@ -125,5 +135,17 @@ public final class ItemDefinition {
 
     public List<String> getLoreTemplate() {
         return loreTemplate;
+    }
+
+    public String getResonance() {
+        return resonance;
+    }
+
+    public int getAnchor() {
+        return anchor;
+    }
+
+    public int getOxygenCapacity() {
+        return oxygenCapacity;
     }
 }

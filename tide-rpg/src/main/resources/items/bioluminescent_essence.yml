@@ -1,0 +1,23 @@
+id: bioluminescent_essence
+display_name: "§a생물발광 에센스"
+material: GLOW_INK_SAC
+custom_model_data: 1401
+gear_score: 0
+tier: 2
+
+base_stats:
+  damage: 0
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 0
+
+socket_count: 0
+socket_max: 0
+
+sell_price: 15
+
+lore_template:
+  - "§7상위 룬 융합 및 연금술 핵심 재료."
+  - "§7사리(Spring Tide) 야간 해안가에서만 채집 가능."

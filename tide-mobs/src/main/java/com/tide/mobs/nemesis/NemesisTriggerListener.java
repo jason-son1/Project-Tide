@@ -25,13 +25,23 @@ public final class NemesisTriggerListener implements Listener {
 
     private final JavaPlugin plugin;
     private final NemesisManager nemesisManager;
+    private final CalamityManager calamityManager;
+    private final LegacyTheftManager legacyTheftManager;
 
-    public NemesisTriggerListener(JavaPlugin plugin, NemesisManager nemesisManager) {
+    public NemesisTriggerListener(JavaPlugin plugin, NemesisManager nemesisManager, CalamityManager calamityManager,
+                                   LegacyTheftManager legacyTheftManager) {
         this.plugin = plugin;
         this.nemesisManager = nemesisManager;
+        this.calamityManager = calamityManager;
+        this.legacyTheftManager = legacyTheftManager;
     }
 
-    @EventHandler
+    /**
+     * LOW so this runs before TideCore's WreckageGrave handler (NORMAL) —
+     * Legacy Theft (3-2) needs to pull the best item out of event.getDrops()
+     * before the grave snapshot is taken.
+     */
+    @EventHandler(priority = EventPriority.LOW)
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
         var lastDamage = player.getLastDamageCause();
@@ -40,6 +50,9 @@ public final class NemesisTriggerListener implements Listener {
         }
         if (!(damageEvent.getDamager() instanceof LivingEntity mob)) {
             return;
+        }
+        if (isElite(mob)) {
+            legacyTheftManager.stealBestItem(mob, player, event.getDrops());
         }
         tryAwaken(mob, player);
     }
@@ -83,7 +96,10 @@ public final class NemesisTriggerListener implements Listener {
             return;
         }
         String affixes = mob.getPersistentDataContainer().get(TideKeys.AFFIXES, PersistentDataType.STRING);
-        nemesisManager.awaken(mob, player, affixes);
+        NemesisRecord record = nemesisManager.awaken(mob, player, affixes);
+        if (record != null && calamityManager.isCalamityEligible(record)) {
+            calamityManager.evolve(mob, record);
+        }
     }
 
     private boolean isElite(LivingEntity entity) {

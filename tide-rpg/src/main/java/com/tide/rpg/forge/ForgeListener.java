@@ -151,7 +151,12 @@ public final class ForgeListener implements Listener {
         if (success) {
             pdc.set(TideKeys.REINFORCE, PersistentDataType.INTEGER, nextLevel);
             player.sendMessage("§a강화 성공! §f+" + currentLevel + " §a→ §f+" + nextLevel);
-            player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1.4f);
+            com.tide.core.effect.EffectEngine effectEngine = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.effect.EffectEngine.class);
+            if (effectEngine != null) {
+                effectEngine.playEffect(player, nextLevel >= 7 ? "forge_success_high" : "forge_success_low");
+            } else {
+                player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1.4f);
+            }
         } else {
             ItemStack scroll = inventory.getItem(ForgeGUI.REINFORCE_SCROLL_SLOT);
             boolean hasScroll = scroll != null && "protection_scroll".equals(itemIdOf(scroll));
@@ -165,7 +170,12 @@ public final class ForgeListener implements Listener {
                 pdc.set(TideKeys.REINFORCE, PersistentDataType.INTEGER, downgraded);
                 player.sendMessage("§c강화 실패! §f+" + currentLevel + " §c→ §f+" + downgraded);
             }
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            com.tide.core.effect.EffectEngine effectEngine = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.effect.EffectEngine.class);
+            if (effectEngine != null) {
+                effectEngine.playEffect(player, "forge_fail");
+            } else {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            }
         }
 
         gear.setItemMeta(gearMeta);

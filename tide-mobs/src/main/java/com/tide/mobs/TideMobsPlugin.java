@@ -1,5 +1,6 @@
 package com.tide.mobs;
 
+import java.io.File;
 import com.tide.core.economy.EconomyAPI;
 import com.tide.core.reload.ReloadManager;
 import com.tide.core.tide.TideStateProvider;
@@ -12,6 +13,11 @@ import com.tide.mobs.boss.AltarInteractListener;
 import com.tide.mobs.boss.AltarRegistry;
 import com.tide.mobs.boss.BossCombatListener;
 import com.tide.mobs.boss.BossFightManager;
+import com.tide.mobs.nemesis.CalamityManager;
+import com.tide.mobs.nemesis.ContractBoardGUI;
+import com.tide.mobs.nemesis.ContractBoardListener;
+import com.tide.mobs.nemesis.ContractManager;
+import com.tide.mobs.nemesis.LegacyTheftManager;
 import com.tide.mobs.nemesis.NemesisManager;
 import com.tide.mobs.nemesis.NemesisRewardListener;
 import com.tide.mobs.nemesis.NemesisTracker;
@@ -48,6 +54,8 @@ public final class TideMobsPlugin extends JavaPlugin {
     private BountyBoardGUI bountyBoardGUI;
     private NemesisManager nemesisManager;
     private NemesisTracker nemesisTracker;
+    private ContractManager contractManager;
+    private ContractBoardGUI contractBoardGUI;
 
     @Override
     public void onEnable() {
@@ -91,9 +99,16 @@ public final class TideMobsPlugin extends JavaPlugin {
 
         this.nemesisManager = new NemesisManager(this);
         nemesisManager.init();
-        getServer().getPluginManager().registerEvents(new NemesisTriggerListener(this, nemesisManager), this);
-        getServer().getPluginManager().registerEvents(new NemesisRewardListener(nemesisManager, economyAPI, itemFactory), this);
-        this.nemesisTracker = new NemesisTracker(this, nemesisManager);
+        CalamityManager calamityManager = new CalamityManager(affixRegistry);
+        LegacyTheftManager legacyTheftManager = new LegacyTheftManager();
+        this.contractManager = new ContractManager(nemesisManager, economyAPI);
+        this.contractBoardGUI = new ContractBoardGUI(contractManager);
+        getServer().getPluginManager().registerEvents(
+                new NemesisTriggerListener(this, nemesisManager, calamityManager, legacyTheftManager), this);
+        getServer().getPluginManager().registerEvents(
+                new NemesisRewardListener(nemesisManager, economyAPI, itemFactory, legacyTheftManager, contractManager), this);
+        getServer().getPluginManager().registerEvents(new ContractBoardListener(contractManager), this);
+        this.nemesisTracker = new NemesisTracker(this, nemesisManager, calamityManager);
         nemesisTracker.start();
 
         Bukkit.getServicesManager().register(NemesisManager.class, nemesisManager, this, org.bukkit.plugin.ServicePriority.Normal);
@@ -106,6 +121,7 @@ public final class TideMobsPlugin extends JavaPlugin {
         }
 
         getCommand("bounty").setExecutor(this);
+        getCommand("bountycontract").setExecutor(this);
 
         getLogger().info("TideMobs enabled. 접두사 " + affixRegistry.all().size() + "개 로드.");
     }
@@ -122,19 +138,55 @@ public final class TideMobsPlugin extends JavaPlugin {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (command.getName().equalsIgnoreCase("bounty") && sender instanceof Player player) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("플레이어만 사용할 수 있는 명령어입니다.");
+            return true;
+        }
+        if (command.getName().equalsIgnoreCase("bounty")) {
             bountyBoardGUI.open(player);
             return true;
+        }
+        if (command.getName().equalsIgnoreCase("bountycontract")) {
+            return handleContractCommand(player, args);
         }
         return false;
     }
 
+    private boolean handleContractCommand(Player player, String[] args) {
+        if (args.length == 0 || args[0].equalsIgnoreCase("list")) {
+            contractBoardGUI.open(player);
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("post")) {
+            if (args.length < 3) {
+                player.sendMessage("§c사용법: /bountycontract post <선불금_조개> <성공보수_진주>");
+                return true;
+            }
+            try {
+                long upfront = Long.parseLong(args[1]);
+                long reward = Long.parseLong(args[2]);
+                contractManager.post(player, upfront, reward);
+            } catch (NumberFormatException exception) {
+                player.sendMessage("§c선불금/성공보수는 숫자여야 합니다.");
+            }
+            return true;
+        }
+        player.sendMessage("§c사용법: /bountycontract <post <선불금> <성공보수>|list>");
+        return true;
+    }
+
     private void extractBundled() {
         for (String id : SAMPLE_AFFIXES) {
-            saveResource("affixes/" + id + ".yml", false);
+            File file = new File(getDataFolder(), "affixes/" + id + ".yml");
+            if (!file.exists()) {
+                saveResource("affixes/" + id + ".yml", false);
+            }
         }
         for (String id : SAMPLE_ALTARS) {
-            saveResource("altars/" + id + ".yml", false);
+            File file = new File(getDataFolder(), "altars/" + id + ".yml");
+            if (!file.exists()) {
+                saveResource("altars/" + id + ".yml", false);
+            }
         }
     }
 

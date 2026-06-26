@@ -5,9 +5,11 @@ import MobTab from "./tabs/MobTab.jsx";
 import ItemTab from "./tabs/ItemTab.jsx";
 import RuneTab from "./tabs/RuneTab.jsx";
 import DatabaseTab from "./tabs/DatabaseTab.jsx";
+import GuideTab from "./tabs/GuideTab.jsx";
 
 const TABS = [
   { id: "config", label: "⚙️ 설정 관리자", Component: ConfigTab },
+  { id: "guide", label: "📖 시스템 가이드", Component: GuideTab },
   { id: "database", label: "🗄️ 데이터베이스", Component: DatabaseTab },
   { id: "mob", label: "👹 몹 생성기", Component: MobTab },
   { id: "item", label: "⚔️ 아이템 생성기", Component: ItemTab },
@@ -60,6 +62,7 @@ export default function App() {
       </header>
       <main>
         {activeTab === "config" && <ConfigTab onEditVisually={handleEditVisually} />}
+        {activeTab === "guide" && <GuideTab />}
         {activeTab === "database" && <DatabaseTab />}
         {activeTab === "mob" && <MobTab loadedConfig={loadedMob} onClearLoaded={() => setLoadedMob(null)} />}
         {activeTab === "item" && <ItemTab loadedConfig={loadedItem} onClearLoaded={() => setLoadedItem(null)} />}

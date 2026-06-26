@@ -64,6 +64,11 @@ public final class LoreRenderer {
             }
         }
 
+        String resonance = pdc.get(TideKeys.RESONANCE, org.bukkit.persistence.PersistentDataType.STRING);
+        if (resonance != null && !resonance.isBlank()) {
+            lore.add("§b〜 조수 공명: §f" + resonance + " §7(일치 시 스탯 +50%)");
+        }
+
         meta.setLore(lore);
         itemStack.setItemMeta(meta);
     }

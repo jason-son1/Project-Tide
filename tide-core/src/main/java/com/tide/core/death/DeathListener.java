@@ -68,6 +68,7 @@ public final class DeathListener implements Listener {
 
         pendingRespawnDebuff.add(player.getUniqueId());
         player.sendMessage("§c조류에 휩쓸렸습니다! §7조개 " + loss + "개를 잃었고, 사망 지점에 유실물 비석이 생성되었습니다.");
+        com.tide.core.TideCorePlugin.getInstance().getEffectEngine().playEffect(player, "death_sweep");
     }
 
     @EventHandler

@@ -6,6 +6,24 @@ const BASE_MOBS = ["ZOMBIE", "SKELETON", "SPIDER", "CREEPER", "WITHER_SKELETON",
 const AFFIXES = ["염화의", "신속의", "폭심의", "분열의", "강철의", "재생의", "가시의", "보호막의"];
 const TIDE_STATES = ["HIGH_TIDE", "LOW_TIDE", "SPRING_TIDE", "BLOOD_MOON", "BLOOD_TIDE"];
 
+const GEMINI_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-3.5-pro",
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-2.0-flash",
+  "gemini-2.0-pro",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro"
+];
+const CLAUDE_MODELS = [
+  "claude-4-6-sonnet",
+  "claude-4-5-sonnet",
+  "claude-4-0-haiku",
+  "claude-3-5-sonnet-20241022",
+  "claude-3-5-haiku-20241022"
+];
+
 export default function MobTab({ loadedConfig, onClearLoaded }) {
   const [id, setId] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -20,12 +38,12 @@ export default function MobTab({ loadedConfig, onClearLoaded }) {
   const [deployStatus, setDeployStatus] = useState("");
 
   const [aiProvider, setAiProvider] = useState(localStorage.getItem("ai_provider") || "gemini");
-  const [aiModel, setAiModel] = useState(localStorage.getItem("ai_model") || "gemini-2.5-flash");
+  const [aiModel, setAiModel] = useState(localStorage.getItem("ai_model") || "gemini-3.5-flash");
   const [aiApiKey, setAiApiKey] = useState(localStorage.getItem("ai_api_key") || "");
 
   function handleProviderChange(prov) {
     setAiProvider(prov);
-    const defaultModel = prov === "gemini" ? "gemini-2.5-flash" : "claude-3-5-sonnet-20241022";
+    const defaultModel = prov === "gemini" ? "gemini-3.5-flash" : "claude-4-6-sonnet";
     setAiModel(defaultModel);
     localStorage.setItem("ai_provider", prov);
     localStorage.setItem("ai_model", defaultModel);
@@ -102,35 +120,60 @@ export default function MobTab({ loadedConfig, onClearLoaded }) {
     }
   }
 
+  const isCustomModel = aiProvider === "gemini"
+    ? !GEMINI_MODELS.includes(aiModel)
+    : !CLAUDE_MODELS.includes(aiModel);
+
   return (
     <div className="tab-grid">
       <div className="form-panel">
         <h2>몹 생성기</h2>
-        <label>몹 ID<input value={id} onChange={(e) => setId(e.target.value)} placeholder="zombie_염화의_t2" /></label>
-        <label>표시 이름<input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="§c[염화의] §f좀비" /></label>
-        <label>기반 몹
+        <label>
+          몹 ID
+          <input value={id} onChange={(e) => setId(e.target.value)} placeholder="zombie_염화의_t2" />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>몹 고유 식별자 명칭입니다. (예: zombie_염화의_t2)</span>
+        </label>
+        
+        <label>
+          표시 이름
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="§c[염화의] §f좀비" />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>게임 인게임 내 몹 위에 뜰 네임택입니다. 색상 코드 연동 가능.</span>
+        </label>
+        
+        <label>
+          기반 몹
           <select value={baseMob} onChange={(e) => setBaseMob(e.target.value)}>
             {BASE_MOBS.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>소환에 기반이 될 마인크래프트 기본 엔티티 타입 종류입니다.</span>
         </label>
 
         <fieldset>
-          <legend>접두사</legend>
+          <legend>접두사 (어픽스 효과)</legend>
           {AFFIXES.map((a) => (
             <label key={a} className="checkbox">
               <input type="checkbox" checked={affixes.includes(a)} onChange={() => toggle(affixes, setAffixes, a)} />{a}
             </label>
           ))}
+          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "6px", width: "100%" }}>정예 몹이 가질 특수 전투 패시브입니다. (예: 염화의 = 바닥 화염 장판 유발)</div>
         </fieldset>
 
-        <label>HP 배율: {hpMultiplier}
+        <label>
+          HP 배율: {hpMultiplier}
           <input type="range" min="1.0" max="5.0" step="0.1" value={hpMultiplier} onChange={(e) => setHpMultiplier(e.target.value)} />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>바닐라 기본 체력에 곱할 난이도 체력 배율입니다.</span>
         </label>
-        <label>데미지 배율: {damageMultiplier}
+        
+        <label>
+          데미지 배율: {damageMultiplier}
           <input type="range" min="1.0" max="4.0" step="0.1" value={damageMultiplier} onChange={(e) => setDamageMultiplier(e.target.value)} />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>바닐라 기본 물리 대미지에 곱할 공격력 배율입니다.</span>
         </label>
-        <label>이동속도: {movementSpeed}
+        
+        <label>
+          이동속도 스탯: {movementSpeed}
           <input type="range" min="0.20" max="0.40" step="0.01" value={movementSpeed} onChange={(e) => setMovementSpeed(e.target.value)} />
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>몹이 이동하고 플레이어를 쫓아올 때의 기동 속도입니다.</span>
         </label>
 
         <fieldset>
@@ -140,6 +183,7 @@ export default function MobTab({ loadedConfig, onClearLoaded }) {
               <input type="checkbox" checked={tideStates.includes(s)} onChange={() => toggle(tideStates, setTideStates, s)} />{s}
             </label>
           ))}
+          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "6px", width: "100%" }}>지정한 조수(Tide) 상태 주기일 때만 이 몹이 야생에서 소폰되도록 제한합니다.</div>
         </fieldset>
 
         <fieldset style={{ marginBottom: "12px", border: "1px dashed #475569" }}>
@@ -152,22 +196,51 @@ export default function MobTab({ loadedConfig, onClearLoaded }) {
               </select>
             </label>
             <label style={{ flex: 1, margin: 0 }}>모델
-              <select value={aiModel} onChange={(e) => setAiModel(e.target.value)} style={{ padding: "4px 8px" }}>
+              <select 
+                value={
+                  aiProvider === "gemini"
+                    ? (GEMINI_MODELS.includes(aiModel) ? aiModel : "custom")
+                    : (CLAUDE_MODELS.includes(aiModel) ? aiModel : "custom")
+                } 
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "custom") {
+                    setAiModel("");
+                  } else {
+                    setAiModel(val);
+                    localStorage.setItem("ai_model", val);
+                  }
+                }} 
+                style={{ padding: "4px 8px" }}
+              >
                 {aiProvider === "gemini" ? (
                   <>
-                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                    <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                    <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                    {GEMINI_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+                    <option value="custom">직접 입력 (Custom)...</option>
                   </>
                 ) : (
                   <>
-                    <option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet</option>
-                    <option value="claude-3-5-haiku-20241022">claude-3-5-haiku</option>
+                    {CLAUDE_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+                    <option value="custom">직접 입력 (Custom)...</option>
                   </>
                 )}
               </select>
             </label>
           </div>
+          {isCustomModel && (
+            <label style={{ margin: "0 0 8px 0" }}>모델명 직접 입력
+              <input
+                type="text"
+                value={aiModel}
+                onChange={(e) => {
+                  setAiModel(e.target.value);
+                  localStorage.setItem("ai_model", e.target.value);
+                }}
+                placeholder={aiProvider === "gemini" ? "예: gemini-3.5-pro" : "예: claude-4-6-sonnet"}
+                style={{ padding: "6px 8px", fontSize: "12px" }}
+              />
+            </label>
+          )}
           <label style={{ margin: 0 }}>API Key (비워두면 서버 키 사용)
             <input
               type="password"

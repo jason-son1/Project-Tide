@@ -23,6 +23,11 @@ reroll:
 fusion:
   same-rune-required: 3
 
+tidal_currents:
+  transition-window-seconds: 20
+  strength: 0.25
+  shore-direction: { x: 1.0, z: 0.0 }
+
 deepmine:
   world: world
   reset-interval-minutes: 30

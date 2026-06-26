@@ -50,6 +50,11 @@ public final class EliteSpawnListener implements Listener {
         Collections.shuffle(shuffled);
         int affixCount = Math.min(shuffled.size(), ThreadLocalRandom.current().nextBoolean() ? 1 : 2);
         eliteProcessor.apply(entity, shuffled.subList(0, affixCount));
+
+        com.tide.core.effect.EffectEngine effectEngine = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.effect.EffectEngine.class);
+        if (effectEngine != null) {
+            effectEngine.playEffect(entity.getLocation(), "elite_spawn");
+        }
     }
 
     private double eliteChance(TideState state) {

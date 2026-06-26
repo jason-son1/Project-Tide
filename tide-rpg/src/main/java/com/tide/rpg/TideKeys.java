@@ -32,6 +32,13 @@ public final class TideKeys {
     public static final NamespacedKey GRAVE_ID = new NamespacedKey(NAMESPACE, "grave_id");
     public static final NamespacedKey ZONE_ID = new NamespacedKey(NAMESPACE, "zone_id");
 
+    // 심화 확장 기능 백서 (추가기능1) 6장 PDC 스키마
+    public static final NamespacedKey RESONANCE = new NamespacedKey(NAMESPACE, "resonance");
+    public static final NamespacedKey ANCHOR = new NamespacedKey(NAMESPACE, "anchor");
+    public static final NamespacedKey OXYGEN_CAPACITY = new NamespacedKey(NAMESPACE, "oxygen_capacity");
+    public static final NamespacedKey HEAVY_CARGO = new NamespacedKey(NAMESPACE, "heavy_cargo");
+    public static final NamespacedKey STOLEN_FROM = new NamespacedKey(NAMESPACE, "stolen_from");
+
     public static NamespacedKey socket(int index) {
         return switch (index) {
             case 1 -> SOCKET_1;
