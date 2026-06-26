@@ -49,7 +49,7 @@ public final class NemesisManager {
             }
             loadActiveRecords();
             plugin.getLogger().info("Successfully initialized SQLite nemesis database.");
-        } catch (Exception exception) {
+        } catch (Throwable exception) {
             plugin.getLogger().warning("Failed to initialize SQLite nemesis database: " + exception.getMessage() + ". Falling back to local YAML file storage.");
             useFileFallback = true;
             yamlFile = new File(plugin.getDataFolder(), "data/nemesis.yml");

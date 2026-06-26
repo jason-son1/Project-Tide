@@ -52,7 +52,7 @@ public final class EconomyManager implements EconomyAPI, Listener {
                 statement.executeUpdate();
             }
             plugin.getLogger().info("Successfully initialized SQLite database.");
-        } catch (Exception exception) {
+        } catch (Throwable exception) {
             plugin.getLogger().warning("Failed to initialize SQLite database: " + exception.getMessage() + ". Falling back to local YAML file storage.");
             useFileFallback = true;
             yamlFile = new File(plugin.getDataFolder(), "data/players.yml");
