@@ -33,6 +33,7 @@ public final class TideWebServer {
             server.createContext("/api/configs", new ConfigsHandler());
             server.createContext("/api/logs", new LogsHandler());
             server.createContext("/api/reload", new ReloadHandler());
+            server.createContext("/api/database", new DatabaseHandler());
             server.createContext("/", new StaticHandler());
             server.setExecutor(null); // default executor
             server.start();
@@ -424,6 +425,152 @@ public final class TideWebServer {
             if (lower.endsWith(".svg")) return "image/svg+xml";
             if (lower.endsWith(".ico")) return "image/x-icon";
             return "application/octet-stream";
+        }
+    }
+
+    private List<Map<String, Object>> getNemesisRecordsReflectively() {
+        List<Map<String, Object>> records = new ArrayList<>();
+        try {
+            Class<?> nemesisManagerClass = Class.forName("com.tide.mobs.nemesis.NemesisManager");
+            var registration = Bukkit.getServicesManager().getRegistration(nemesisManagerClass);
+            if (registration != null) {
+                Object manager = registration.getProvider();
+                java.lang.reflect.Method getAllRecordsMethod = nemesisManagerClass.getMethod("getAllRecords");
+                java.util.Collection<?> col = (java.util.Collection<?>) getAllRecordsMethod.invoke(manager);
+                if (col != null) {
+                    for (Object record : col) {
+                        if (record == null) continue;
+                        Class<?> recClass = record.getClass();
+                        
+                        UUID mobUuid = (UUID) recClass.getMethod("getMobUuid").invoke(record);
+                        UUID playerUuid = (UUID) recClass.getMethod("getPlayerUuid").invoke(record);
+                        String originalName = (String) recClass.getMethod("getOriginalName").invoke(record);
+                        String affixesCsv = (String) recClass.getMethod("getAffixesCsv").invoke(record);
+                        int killCount = (Integer) recClass.getMethod("getKillCount").invoke(record);
+                        boolean active = (Boolean) recClass.getMethod("isActive").invoke(record);
+
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("mobUuid", mobUuid != null ? mobUuid.toString() : "");
+                        map.put("playerUuid", playerUuid != null ? playerUuid.toString() : "");
+                        map.put("originalName", originalName);
+                        map.put("affixesCsv", affixesCsv);
+                        map.put("killCount", killCount);
+                        map.put("active", active);
+                        records.add(map);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Error querying nemesis records reflectively: " + e.getMessage());
+        }
+        return records;
+    }
+
+    private class DatabaseHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendOptionsResponse(exchange);
+                return;
+            }
+
+            String path = exchange.getRequestURI().getPath();
+            String relativePath = path.substring("/api/database".length());
+            if (relativePath.startsWith("/")) {
+                relativePath = relativePath.substring(1);
+            }
+
+            if ("economy".equalsIgnoreCase(relativePath)) {
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    handleGetEconomy(exchange);
+                } else if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    handlePostEconomy(exchange);
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
+                }
+            } else if ("nemesis".equalsIgnoreCase(relativePath)) {
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    handleGetNemesis(exchange);
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
+                }
+            } else {
+                sendJsonResponse(exchange, 404, Map.of("error", "알 수 없는 API 경로입니다: /api/database/" + relativePath));
+            }
+        }
+
+        private void handleGetEconomy(HttpExchange exchange) throws IOException {
+            try {
+                List<Map<String, Object>> list = new ArrayList<>();
+                for (com.tide.core.economy.PlayerEconomy economy : plugin.getEconomyManager().getAllPlayers().values()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("uuid", economy.getUuid().toString());
+                    map.put("clam", economy.getClam());
+                    map.put("pearl", economy.getPearl());
+                    map.put("rep", economy.getRep());
+                    map.put("hardMode", economy.isHardMode());
+                    org.bukkit.OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(economy.getUuid());
+                    map.put("name", offlinePlayer != null ? offlinePlayer.getName() : "Unknown");
+                    list.add(map);
+                }
+                sendJsonResponse(exchange, 200, list);
+            } catch (Exception e) {
+                sendJsonResponse(exchange, 500, Map.of("error", "economy 목록을 가져오지 못했습니다: " + e.getMessage()));
+            }
+        }
+
+        private void handlePostEconomy(HttpExchange exchange) throws IOException {
+            try (InputStream is = exchange.getRequestBody();
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                
+                Map<String, Object> body = gson.fromJson(reader, Map.class);
+                if (body == null || !body.containsKey("uuid")) {
+                    sendJsonResponse(exchange, 400, Map.of("error", "uuid는 필수 입력 항목입니다."));
+                    return;
+                }
+
+                String uuidStr = (String) body.get("uuid");
+                UUID uuid = UUID.fromString(uuidStr);
+
+                Long clam = null;
+                if (body.containsKey("clam")) {
+                    clam = ((Number) body.get("clam")).longValue();
+                }
+                Long pearl = null;
+                if (body.containsKey("pearl")) {
+                    pearl = ((Number) body.get("pearl")).longValue();
+                }
+                Integer rep = null;
+                if (body.containsKey("rep")) {
+                    rep = ((Number) body.get("rep")).intValue();
+                }
+                Boolean hardMode = null;
+                if (body.containsKey("hardMode")) {
+                    hardMode = (Boolean) body.get("hardMode");
+                }
+
+                final Long finalClam = clam;
+                final Long finalPearl = pearl;
+                final Integer finalRep = rep;
+                final Boolean finalHardMode = hardMode;
+
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    plugin.getEconomyManager().updatePlayerEconomy(uuid, finalClam, finalPearl, finalRep, finalHardMode);
+                });
+
+                sendJsonResponse(exchange, 200, Map.of("success", true, "message", "플레이어 정보가 업데이트되었습니다."));
+            } catch (Exception e) {
+                sendJsonResponse(exchange, 500, Map.of("error", "업데이트 실패: " + e.getMessage()));
+            }
+        }
+
+        private void handleGetNemesis(HttpExchange exchange) throws IOException {
+            try {
+                List<Map<String, Object>> records = getNemesisRecordsReflectively();
+                sendJsonResponse(exchange, 200, records);
+            } catch (Exception e) {
+                sendJsonResponse(exchange, 500, Map.of("error", "nemesis 목록을 가져오지 못했습니다: " + e.getMessage()));
+            }
         }
     }
 }

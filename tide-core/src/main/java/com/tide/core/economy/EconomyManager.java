@@ -275,6 +275,23 @@ public final class EconomyManager implements EconomyAPI, Listener {
         persistAsync(economy);
     }
 
+    public void updatePlayerEconomy(UUID uuid, Long clam, Long pearl, Integer rep, Boolean hardMode) {
+        PlayerEconomy economy = getOrLoadCached(uuid);
+        if (clam != null) {
+            economy.setClam(clam);
+        }
+        if (pearl != null) {
+            economy.setPearl(pearl);
+        }
+        if (rep != null) {
+            economy.setRep(rep);
+        }
+        if (hardMode != null) {
+            economy.setHardMode(hardMode);
+        }
+        persistAsync(economy);
+    }
+
     /**
      * Sums clam across cached (online) players only — a lightweight proxy for the
      * inflation monitor. A full server-wide total would require an async DB scan.

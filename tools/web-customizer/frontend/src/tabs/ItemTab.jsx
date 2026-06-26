@@ -18,6 +18,23 @@ export default function ItemTab({ loadedConfig, onClearLoaded }) {
   const [yamlText, setYamlText] = useState("");
   const [deployStatus, setDeployStatus] = useState("");
 
+  const [aiProvider, setAiProvider] = useState(localStorage.getItem("ai_provider") || "gemini");
+  const [aiModel, setAiModel] = useState(localStorage.getItem("ai_model") || "gemini-2.5-flash");
+  const [aiApiKey, setAiApiKey] = useState(localStorage.getItem("ai_api_key") || "");
+
+  function handleProviderChange(prov) {
+    setAiProvider(prov);
+    const defaultModel = prov === "gemini" ? "gemini-2.5-flash" : "claude-3-5-sonnet-20241022";
+    setAiModel(defaultModel);
+    localStorage.setItem("ai_provider", prov);
+    localStorage.setItem("ai_model", defaultModel);
+  }
+
+  function handleApiKeyChange(key) {
+    setAiApiKey(key);
+    localStorage.setItem("ai_api_key", key);
+  }
+
   useEffect(() => {
     if (loadedConfig) {
       setId(loadedConfig.id || "");
@@ -49,7 +66,12 @@ export default function ItemTab({ loadedConfig, onClearLoaded }) {
   async function handleGenerate() {
     setDeployStatus("");
     const payload = requestText.trim()
-      ? { request_text: requestText.trim() }
+      ? {
+          request_text: requestText.trim(),
+          provider: aiProvider,
+          model: aiModel,
+          api_key: aiApiKey || undefined,
+        }
       : {
           form_data: {
             id,
@@ -101,6 +123,43 @@ export default function ItemTab({ loadedConfig, onClearLoaded }) {
         <label>강화당 데미지 보너스<input type="number" value={damagePerStar} onChange={(e) => setDamagePerStar(e.target.value)} /></label>
         <label>소켓 수(0~3)<input type="number" min="0" max="3" value={socketCount} onChange={(e) => setSocketCount(e.target.value)} /></label>
         <label>판매가(조개)<input type="number" value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} /></label>
+
+        <fieldset style={{ marginBottom: "12px", border: "1px dashed #475569" }}>
+          <legend style={{ color: "#38bdf8", fontSize: "12px" }}>🤖 AI 생성 설정</legend>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+            <label style={{ flex: 1, margin: 0 }}>제공자
+              <select value={aiProvider} onChange={(e) => handleProviderChange(e.target.value)} style={{ padding: "4px 8px" }}>
+                <option value="gemini">Google Gemini</option>
+                <option value="claude">Anthropic Claude</option>
+              </select>
+            </label>
+            <label style={{ flex: 1, margin: 0 }}>모델
+              <select value={aiModel} onChange={(e) => setAiModel(e.target.value)} style={{ padding: "4px 8px" }}>
+                {aiProvider === "gemini" ? (
+                  <>
+                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                    <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                    <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet</option>
+                    <option value="claude-3-5-haiku-20241022">claude-3-5-haiku</option>
+                  </>
+                )}
+              </select>
+            </label>
+          </div>
+          <label style={{ margin: 0 }}>API Key (비워두면 서버 키 사용)
+            <input
+              type="password"
+              value={aiApiKey}
+              onChange={(e) => handleApiKeyChange(e.target.value)}
+              placeholder="API Key 입력..."
+              style={{ padding: "6px 8px", fontSize: "12px" }}
+            />
+          </label>
+        </fieldset>
 
         <label>또는 자연어 요청 (입력 시 폼 대신 AI가 생성)
           <textarea value={requestText} onChange={(e) => setRequestText(e.target.value)}

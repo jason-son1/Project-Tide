@@ -120,3 +120,27 @@ button.primary:hover { background: #0284c7; box-shadow: 0 4px 12px rgba(14, 165,
 ::-webkit-scrollbar-track { background: #090d16; }
 ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #374151; }
+
+/* Database Table Styles */
+.db-table th {
+  background: #1e293b;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 10px;
+  border-bottom: 2px solid #334155;
+}
+.db-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #1e293b;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+.db-table tr {
+  transition: background 0.15s ease;
+}
+.db-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}

@@ -9,6 +9,8 @@ class GenerateRequest(BaseModel):
     request_text: Optional[str] = None
     form_data: Optional[dict] = None
     model: Optional[str] = None
+    api_key: Optional[str] = None
+    provider: Optional[str] = None
 
 
 class GenerateResponse(BaseModel):

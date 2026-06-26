@@ -1,11 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "url";
 
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: "../../tide-core/src/main/resources/web",
-    emptyOutDir: true
+    outDir: fileURLToPath(new URL("../../../tide-core/src/main/resources/web", import.meta.url)),
+    emptyOutDir: false
   },
   server: {
     port: 5173,

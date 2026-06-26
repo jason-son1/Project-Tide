@@ -3,6 +3,8 @@ package com.tide.mobs.mob;
 import com.tide.core.economy.EconomyAPI;
 import com.tide.core.tide.TideStateProvider;
 import com.tide.mobs.affix.EliteProcessor;
+import com.tide.mobs.affix.AffixRegistry;
+import com.tide.mobs.affix.AffixDefinition;
 import com.tide.mobs.MobKeys;
 import com.tide.rpg.item.ItemFactory;
 import org.bukkit.NamespacedKey;
@@ -29,15 +31,17 @@ public final class CustomMobSpawnListener implements Listener {
 
     private final TideStateProvider stateProvider;
     private final MobRegistry mobRegistry;
+    private final AffixRegistry affixRegistry;
     private final EliteProcessor eliteProcessor;
     private final ItemFactory itemFactory;
     private final EconomyAPI economyAPI;
 
     public CustomMobSpawnListener(TideStateProvider stateProvider, MobRegistry mobRegistry,
-                                  EliteProcessor eliteProcessor, ItemFactory itemFactory,
-                                  EconomyAPI economyAPI) {
+                                  AffixRegistry affixRegistry, EliteProcessor eliteProcessor,
+                                  ItemFactory itemFactory, EconomyAPI economyAPI) {
         this.stateProvider = stateProvider;
         this.mobRegistry = mobRegistry;
+        this.affixRegistry = affixRegistry;
         this.eliteProcessor = eliteProcessor;
         this.itemFactory = itemFactory;
         this.economyAPI = economyAPI;
@@ -158,7 +162,16 @@ public final class CustomMobSpawnListener implements Listener {
             // Re-use Elite tagging
             entity.getPersistentDataContainer().set(MobKeys.ELITE, PersistentDataType.BYTE, (byte) 1);
             entity.getPersistentDataContainer().set(MobKeys.AFFIXES, PersistentDataType.STRING, String.join(",", mob.getAffixes()));
-            eliteProcessor.apply(entity, mob.getAffixes());
+            List<AffixDefinition> affixDefs = new ArrayList<>();
+            for (String affixId : mob.getAffixes()) {
+                AffixDefinition def = affixRegistry.get(affixId);
+                if (def != null) {
+                    affixDefs.add(def);
+                }
+            }
+            if (!affixDefs.isEmpty()) {
+                eliteProcessor.apply(entity, affixDefs);
+            }
         }
     }
 

@@ -11,6 +11,9 @@ Deploying writes the file straight into a plugin's data directory and
 
 import os
 import sys
+import json
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 import yaml
@@ -92,33 +95,105 @@ def _build_from_form(content_type: str, form_data: dict) -> dict:
     return merged
 
 
-def _generate_with_ai(content_type: str, request_text: str, model: str | None) -> dict:
+def _generate_with_gemini(content_type: str, request_text: str, model: str | None, api_key: str | None) -> dict:
+    key = api_key or os.environ.get("GEMINI_API_KEY")
+    if not key:
+        raise HTTPException(400, "Gemini API Key가 지정되지 않았습니다. 웹 UI에 입력하거나 서버의 GEMINI_API_KEY 환경 변수를 설정하세요.")
+
+    model_name = model or "gemini-2.5-flash"
+    system_prompt = (AI_GENERATOR_DIR / "prompts" / f"system_{content_type}.txt").read_text(encoding="utf-8")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": request_text}]
+            }
+        ],
+        "systemInstruction": {
+            "parts": [{"text": system_prompt}]
+        },
+        "generationConfig": {
+            "temperature": 0.2,
+            "responseMimeType": "text/plain"
+        }
+    }
+
     try:
-        from generate_content import DEFAULT_MODEL  # noqa: F401  (import-time validation only)
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req) as res:
+            response_data = json.loads(res.read().decode("utf-8"))
+            candidates = response_data.get("candidates", [])
+            if not candidates:
+                raise HTTPException(502, "Gemini API 응답에서 후보(candidates)를 찾을 수 없습니다.")
+            parts = candidates[0].get("content", {}).get("parts", [])
+            if not parts:
+                raise HTTPException(502, "Gemini API 응답에서 텍스트(parts)를 찾을 수 없습니다.")
+            yaml_text = parts[0].get("text", "").strip()
+
+            if yaml_text.startswith("```"):
+                lines = yaml_text.splitlines()[1:]
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                yaml_text = "\n".join(lines)
+
+            data = yaml.safe_load(yaml_text)
+            if not isinstance(data, dict) or "id" not in data:
+                raise HTTPException(502, "AI 응답이 유효한 YAML 형식이 아닙니다.")
+            return data
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8")
+        try:
+            err_json = json.loads(err_msg)
+            err_detail = err_json.get("error", {}).get("message", err_msg)
+        except Exception:
+            err_detail = err_msg
+        raise HTTPException(502, f"Gemini API 호출 실패: {err_detail}")
+    except Exception as e:
+        raise HTTPException(500, f"Gemini 생성 중 예외 발생: {str(e)}")
+
+
+def _generate_with_claude(content_type: str, request_text: str, model: str | None, api_key: str | None) -> dict:
+    try:
         import anthropic
     except ImportError as exc:
-        raise HTTPException(500, f"AI 생성기 의존성이 설치되지 않았습니다: {exc}") from exc
+        raise HTTPException(500, f"Claude(anthropic) 패키지가 설치되지 않았습니다: {exc}") from exc
+
+    key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise HTTPException(400, "Claude API Key가 지정되지 않았습니다. 웹 UI에 입력하거나 서버의 ANTHROPIC_API_KEY 환경 변수를 설정하세요.")
 
     system_prompt = (AI_GENERATOR_DIR / "prompts" / f"system_{content_type}.txt").read_text(encoding="utf-8")
-    client = anthropic.Anthropic()
-    message = client.messages.create(
-        model=model or os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-        max_tokens=2000,
-        system=system_prompt,
-        messages=[{"role": "user", "content": request_text}],
-    )
-    yaml_text = "".join(block.text for block in message.content if hasattr(block, "text"))
-    yaml_text = yaml_text.strip()
-    if yaml_text.startswith("```"):
-        lines = yaml_text.splitlines()[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        yaml_text = "\n".join(lines)
+    client = anthropic.Anthropic(api_key=key)
+    model_name = model or os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 
-    data = yaml.safe_load(yaml_text)
-    if not isinstance(data, dict) or "id" not in data:
-        raise HTTPException(502, "AI 응답이 유효한 YAML 스키마가 아닙니다.")
-    return data
+    try:
+        message = client.messages.create(
+            model=model_name,
+            max_tokens=2000,
+            system=system_prompt,
+            messages=[{"role": "user", "content": request_text}],
+        )
+        yaml_text = "".join(block.text for block in message.content if hasattr(block, "text")).strip()
+
+        if yaml_text.startswith("```"):
+            lines = yaml_text.splitlines()[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            yaml_text = "\n".join(lines)
+
+        data = yaml.safe_load(yaml_text)
+        if not isinstance(data, dict) or "id" not in data:
+            raise HTTPException(502, "AI 응답이 유효한 YAML 형식이 아닙니다.")
+        return data
+    except Exception as e:
+        raise HTTPException(502, f"Claude API 호출 실패: {str(e)}")
 
 
 @app.post("/api/generate/{content_type}", response_model=GenerateResponse)
@@ -129,7 +204,26 @@ def generate(content_type: str, body: GenerateRequest):
     if body.form_data:
         data = _build_from_form(content_type, body.form_data)
     elif body.request_text:
-        data = _generate_with_ai(content_type, body.request_text, body.model)
+        # Determine provider
+        provider = body.provider
+        if not provider:
+            # Autodetect from API Key or environment
+            if body.api_key:
+                if body.api_key.startswith("AIzaSy"):
+                    provider = "gemini"
+                else:
+                    provider = "claude"
+            elif os.environ.get("GEMINI_API_KEY"):
+                provider = "gemini"
+            elif os.environ.get("ANTHROPIC_API_KEY"):
+                provider = "claude"
+            else:
+                provider = "gemini" # default fallback
+                
+        if provider == "gemini":
+            data = _generate_with_gemini(content_type, body.request_text, body.model, body.api_key)
+        else:
+            data = _generate_with_claude(content_type, body.request_text, body.model, body.api_key)
     else:
         raise HTTPException(400, "request_text 또는 form_data 중 하나가 필요합니다.")
 

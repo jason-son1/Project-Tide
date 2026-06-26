@@ -53,3 +53,19 @@ export async function fetchLogs() {
   if (!response.ok) throw new Error("로그를 가져오지 못했습니다.");
   return response.json();
 }
+
+export async function fetchEconomy() {
+  const response = await fetch(`${API_BASE}/api/database/economy`);
+  if (!response.ok) throw new Error("플레이어 경제 정보를 가져오지 못했습니다.");
+  return response.json();
+}
+
+export async function updateEconomy(payload) {
+  return postJson("/api/database/economy", payload);
+}
+
+export async function fetchNemesis() {
+  const response = await fetch(`${API_BASE}/api/database/nemesis`);
+  if (!response.ok) throw new Error("네메시스 정보를 가져오지 못했습니다.");
+  return response.json();
+}

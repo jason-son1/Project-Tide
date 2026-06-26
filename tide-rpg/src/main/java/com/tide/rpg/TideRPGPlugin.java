@@ -16,6 +16,8 @@ import com.tide.rpg.gs.GearScoreCalculator;
 import com.tide.rpg.item.ItemFactory;
 import com.tide.rpg.item.ItemRegistry;
 import com.tide.rpg.item.LoreRenderer;
+import com.tide.rpg.item.TideBellListener;
+import com.tide.rpg.item.TideVaultListener;
 import com.tide.rpg.rune.RuneItemFactory;
 import com.tide.rpg.rune.RuneRegistry;
 import com.tide.rpg.sell.SellAllCommand;
@@ -37,7 +39,7 @@ public final class TideRPGPlugin extends JavaPlugin {
 
     private static final String[] SAMPLE_ITEMS = {
             "iron_sword_t1", "flame_sword_t1", "leather_armor_t1", "reinforce_stone", "protection_scroll",
-            "soul_fragment", "nemesis_token"
+            "soul_fragment", "nemesis_token", "tide_bell"
     };
     private static final String[] SAMPLE_RUNES = {
             "rune_lifesteal_1", "rune_lifesteal_2", "rune_lightning_1"
@@ -104,6 +106,8 @@ public final class TideRPGPlugin extends JavaPlugin {
                 new ZoneGuardListener(zoneRegistry, gearScoreCalculator), this);
         getServer().getPluginManager().registerEvents(
                 new FishingQteListener(fishingHoleRegistry, economyAPI), this);
+        getServer().getPluginManager().registerEvents(new TideBellListener(), this);
+        getServer().getPluginManager().registerEvents(new TideVaultListener(itemFactory), this);
 
         setupDeepMine();
 

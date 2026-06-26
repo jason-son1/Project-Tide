@@ -75,7 +75,7 @@ public final class TideMobsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new EliteSpawnListener(tideStateProvider, affixRegistry, eliteProcessor), this);
         getServer().getPluginManager().registerEvents(
-                new CustomMobSpawnListener(tideStateProvider, mobRegistry, eliteProcessor, itemFactory, economyAPI), this);
+                new CustomMobSpawnListener(tideStateProvider, mobRegistry, affixRegistry, eliteProcessor, itemFactory, economyAPI), this);
         getServer().getPluginManager().registerEvents(new AffixCombatListener(this), this);
         getServer().getPluginManager().registerEvents(new EliteDropListener(itemFactory), this);
 
@@ -95,6 +95,8 @@ public final class TideMobsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new NemesisRewardListener(nemesisManager, economyAPI, itemFactory), this);
         this.nemesisTracker = new NemesisTracker(this, nemesisManager);
         nemesisTracker.start();
+
+        Bukkit.getServicesManager().register(NemesisManager.class, nemesisManager, this, org.bukkit.plugin.ServicePriority.Normal);
 
         ReloadManager reloadManager = lookupService(ReloadManager.class);
         if (reloadManager != null) {

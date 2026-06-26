@@ -1,0 +1,22 @@
+id: tide_bell
+display_name: "§4§l[조종의 종]"
+material: BELL
+custom_model_data: 1008
+gear_score: 0
+tier: 3
+
+base_stats:
+  damage: 0
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 0
+
+socket_count: 0
+socket_max: 0
+sell_price: 500
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§7— 우클릭 시 블러드문을 강제 트리거합니다 —"
