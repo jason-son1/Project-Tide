@@ -1,0 +1,5 @@
+id: 강철의
+display_name: "§7[§f강철의§7]"
+hp_multiplier: 2.2
+damage_multiplier: 1.2
+spawn_particle: CRIT

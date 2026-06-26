@@ -1,0 +1,13 @@
+package com.tide.mobs;
+
+import org.bukkit.NamespacedKey;
+
+/** Additional PDC keys beyond the shared tide:affixes / tide:elite table, scoped to mob behavior. */
+public final class MobKeys {
+
+    private MobKeys() {
+    }
+
+    public static final NamespacedKey DAMAGE_MULTIPLIER = new NamespacedKey("tide", "damage_multiplier");
+    public static final NamespacedKey BOSS_MARKER = new NamespacedKey("tide", "boss_altar_id");
+}

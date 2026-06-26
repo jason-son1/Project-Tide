@@ -1,0 +1,32 @@
+gs:
+  per_reinforce_star: 5
+
+forge:
+  reinforce-success-rate:
+    1: 100
+    2: 90
+    3: 80
+    4: 70
+    5: 60
+    6: 50
+    7: 40
+    8: 35
+    9: 30
+    10: 25
+  reinforce-cost-base: 100
+  reinforce-cost-multiplier: 1.5
+  protection-scroll-pearl-cost: 3
+
+reroll:
+  pearl-cost: 5
+
+fusion:
+  same-rune-required: 3
+
+deepmine:
+  world: world
+  reset-interval-minutes: 30
+  bounds:
+    min: { x: -200, y: -64, z: -200 }
+    max: { x: -100, y: 60, z: -100 }
+  entrance: { x: -150, y: 61, z: -150 }

@@ -1,0 +1,5 @@
+id: 신속의
+display_name: "§b[§f신속의§b]"
+hp_multiplier: 1.3
+damage_multiplier: 1.5
+spawn_particle: CLOUD

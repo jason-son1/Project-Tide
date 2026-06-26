@@ -1,0 +1,5 @@
+id: 분열의
+display_name: "§5[§d분열의§5]"
+hp_multiplier: 1.3
+damage_multiplier: 1.4
+spawn_particle: WITCH

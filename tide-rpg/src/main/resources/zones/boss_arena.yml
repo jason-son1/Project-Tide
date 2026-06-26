@@ -1,0 +1,9 @@
+id: boss_arena
+label: "공허의 기사 제단"
+world: world
+bounds:
+  min: { x: 100, y: 60, z: 100 }
+  max: { x: 140, y: 90, z: 140 }
+recommended_gs: 400
+warn_gs: 250
+recommended_party_size: 3

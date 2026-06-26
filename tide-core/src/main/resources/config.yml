@@ -1,0 +1,27 @@
+tide:
+  cycle-duration-minutes: 120
+  spring-tide-chance: 5
+  blood-moon-chance: 8
+  scheduled-spring-day: SUNDAY
+
+economy:
+  clam-sink-reinforce-base: 100
+  clam-sink-reinforce-multiplier: 1.5
+  pearl-protection-scroll-cost: 3
+  inflation-alert-threshold: 1000000
+
+death_penalty:
+  clam-loss-percent: 10
+  grave-duration-seconds: 600
+  debuff-duration-seconds: 60
+
+drop_rate_multiplier:
+  high_tide: 2.0
+  low_tide_wild: 0.3
+  low_tide_instance: 1.5
+  spring_tide: 3.0
+
+web-server:
+  enabled: true
+  port: 8080
+

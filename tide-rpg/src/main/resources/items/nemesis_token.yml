@@ -1,0 +1,22 @@
+id: nemesis_token
+display_name: "§4네메시스의 징표"
+material: NETHER_STAR
+custom_model_data: 1201
+gear_score: 0
+tier: 1
+
+base_stats:
+  damage: 0
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 0
+
+socket_count: 0
+socket_max: 0
+
+sell_price: 200
+
+lore_template:
+  - "§7복수를 완료한 자만이 가질 수 있는 증표."

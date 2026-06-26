@@ -1,0 +1,5 @@
+id: mythic_fishing_hole
+world: world
+bounds:
+  min: { x: -60, y: 55, z: -60 }
+  max: { x: -20, y: 70, z: -20 }

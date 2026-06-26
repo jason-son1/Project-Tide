@@ -1,0 +1,9 @@
+id: deep_mine
+label: "딥 마인"
+world: world
+bounds:
+  min: { x: -200, y: -64, z: -200 }
+  max: { x: -100, y: 60, z: -100 }
+recommended_gs: 250
+warn_gs: 150
+recommended_party_size: 1

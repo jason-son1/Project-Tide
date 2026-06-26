@@ -1,0 +1,22 @@
+id: reinforce_stone
+display_name: "§f강화석"
+material: QUARTZ
+custom_model_data: 1100
+gear_score: 0
+tier: 1
+
+base_stats:
+  damage: 0
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 0
+
+socket_count: 0
+socket_max: 0
+
+sell_price: 0
+
+lore_template:
+  - "§7강화 시 소모되는 재료입니다."

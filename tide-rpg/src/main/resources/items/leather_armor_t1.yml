@@ -1,0 +1,25 @@
+id: leather_armor_t1
+display_name: "§a[파도의 가죽 갑옷]"
+material: LEATHER_CHESTPLATE
+custom_model_data: 1003
+gear_score: 120
+tier: 1
+
+base_stats:
+  damage: 0
+  defense: 8
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 2
+
+socket_count: 1
+socket_max: 2
+
+sell_price: 25
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"

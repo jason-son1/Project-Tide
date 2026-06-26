@@ -1,0 +1,5 @@
+id: 보호막의
+display_name: "§e[§6보호막의§e]"
+hp_multiplier: 1.7
+damage_multiplier: 1.2
+spawn_particle: TOTEM_OF_UNDYING

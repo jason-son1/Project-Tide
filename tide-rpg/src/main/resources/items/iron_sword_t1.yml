@@ -1,0 +1,25 @@
+id: iron_sword_t1
+display_name: "§6[파도의 검]"
+material: IRON_SWORD
+custom_model_data: 1001
+gear_score: 150
+tier: 1
+
+base_stats:
+  damage: 18
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 3
+  defense_per_star: 0
+
+socket_count: 2
+socket_max: 3
+
+sell_price: 30
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"

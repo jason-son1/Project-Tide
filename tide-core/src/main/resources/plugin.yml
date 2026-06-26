@@ -1,0 +1,25 @@
+name: TideCore
+version: ${project.version}
+main: com.tide.core.TideCorePlugin
+api-version: '1.21'
+author: TideTeam
+description: The Tide v2 - Tide scheduler, dual currency economy, soft-hardcore death.
+
+commands:
+  clam:
+    description: 보유한 조개(Clam)를 확인합니다.
+    usage: /clam
+  pearl:
+    description: 보유한 진주(Pearl)를 확인합니다.
+    usage: /pearl
+  tide:
+    description: 조수 상태를 확인/제어하고 컨텐츠를 리로드합니다.
+    usage: /tide [reload [대상]|set <상태>|admin]
+  hardcore:
+    description: 하드 모드를 켜거나 끕니다.
+    usage: /hardcore
+
+permissions:
+  tide.admin:
+    description: 조수 상태 변경 및 리로드 권한
+    default: op

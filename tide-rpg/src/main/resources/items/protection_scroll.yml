@@ -1,0 +1,23 @@
+id: protection_scroll
+display_name: "§d보호권"
+material: PAPER
+custom_model_data: 1101
+gear_score: 0
+tier: 1
+
+base_stats:
+  damage: 0
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 0
+
+socket_count: 0
+socket_max: 0
+
+sell_price: 0
+
+lore_template:
+  - "§7강화 실패 시 단계 하락을 막아줍니다."
+  - "§7(+9 → +10 강화에서 사용)"

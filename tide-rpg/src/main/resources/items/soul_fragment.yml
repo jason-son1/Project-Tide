@@ -1,0 +1,23 @@
+id: soul_fragment
+display_name: "§5영혼 파편"
+material: ECHO_SHARD
+custom_model_data: 1200
+gear_score: 0
+tier: 1
+
+base_stats:
+  damage: 0
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 0
+
+socket_count: 0
+socket_max: 0
+
+sell_price: 0
+
+lore_template:
+  - "§7정예 몹에게서 낮은 확률로 드롭됩니다."
+  - "§7보스 제단에서 소환 재료로 사용합니다."

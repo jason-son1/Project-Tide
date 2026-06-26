@@ -1,0 +1,5 @@
+id: 재생의
+display_name: "§a[§2재생의§a]"
+hp_multiplier: 1.8
+damage_multiplier: 1.2
+spawn_particle: HEART

@@ -1,0 +1,5 @@
+id: void_knight_altar
+world: world
+block: { x: 120, y: 61, z: 120 }
+required_fragments: 5
+recommended_party_size: 3

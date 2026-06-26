@@ -1,0 +1,5 @@
+id: 폭심의
+display_name: "§4[§c폭심의§4]"
+hp_multiplier: 1.4
+damage_multiplier: 2.0
+spawn_particle: SMOKE_LARGE

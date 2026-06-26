@@ -1,0 +1,26 @@
+id: flame_sword_t1
+display_name: "§c[염화의 검]"
+material: GOLDEN_SWORD
+custom_model_data: 1002
+gear_score: 180
+tier: 1
+
+base_stats:
+  damage: 20
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 3
+  defense_per_star: 0
+
+socket_count: 1
+socket_max: 3
+
+sell_price: 40
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§8— 불꽃의 기운이 서려있다 —"

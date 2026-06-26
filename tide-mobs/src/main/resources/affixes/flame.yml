@@ -1,0 +1,5 @@
+id: 염화의
+display_name: "§c[§6염화의§c]"
+hp_multiplier: 1.6
+damage_multiplier: 1.8
+spawn_particle: FLAME

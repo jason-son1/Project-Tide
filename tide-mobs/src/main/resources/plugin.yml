@@ -1,0 +1,12 @@
+name: TideMobs
+version: ${project.version}
+main: com.tide.mobs.TideMobsPlugin
+api-version: '1.21'
+depend: [TideCore, TideRPG]
+author: TideTeam
+description: The Tide v2 - Elite affix mob spawning, nemesis tracking.
+
+commands:
+  bounty:
+    description: 현상금 보드를 엽니다.
+    usage: /bounty

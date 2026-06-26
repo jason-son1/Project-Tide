@@ -1,0 +1,16 @@
+id: rune_lightning_1
+display_name: "§e번개의 룬 I"
+type: lightning
+grade: 1
+material: AMETHYST_SHARD
+custom_model_data: 3010
+
+effect:
+  type: lightning
+  value: 0.10
+
+fusion:
+  input_id: rune_lightning_1
+  input_count: 3
+  cost_clam: 120
+  output_id: rune_lightning_2
