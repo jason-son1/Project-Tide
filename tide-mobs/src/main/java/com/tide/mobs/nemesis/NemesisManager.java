@@ -1,5 +1,6 @@
 package com.tide.mobs.nemesis;
 
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -7,6 +8,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -17,15 +19,17 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Persists across restarts (SQLite, own jar-local copy of the driver — see
- * pom.xml relocation) so a nemesis that's still alive keeps hunting its
- * target after a server reboot.
+ * Persists across restarts (SQLite or YAML fallback configuration) so a nemesis
+ * that's still alive keeps hunting its target after a server reboot.
  */
 public final class NemesisManager {
 
     private final JavaPlugin plugin;
     private final Map<UUID, NemesisRecord> activeByPlayer = new ConcurrentHashMap<>();
     private Connection connection;
+    private boolean useFileFallback = false;
+    private YamlConfiguration yamlConfig;
+    private File yamlFile;
 
     public NemesisManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -44,8 +48,20 @@ public final class NemesisManager {
                 statement.executeUpdate();
             }
             loadActiveRecords();
-        } catch (ClassNotFoundException | SQLException exception) {
-            plugin.getLogger().severe("Failed to initialize nemesis database: " + exception.getMessage());
+            plugin.getLogger().info("Successfully initialized SQLite nemesis database.");
+        } catch (Exception exception) {
+            plugin.getLogger().warning("Failed to initialize SQLite nemesis database: " + exception.getMessage() + ". Falling back to local YAML file storage.");
+            useFileFallback = true;
+            yamlFile = new File(plugin.getDataFolder(), "data/nemesis.yml");
+            if (!yamlFile.exists()) {
+                try {
+                    yamlFile.createNewFile();
+                } catch (IOException e) {
+                    plugin.getLogger().severe("Failed to create nemesis.yml: " + e.getMessage());
+                }
+            }
+            yamlConfig = YamlConfiguration.loadConfiguration(yamlFile);
+            loadActiveRecords();
         }
     }
 
@@ -59,6 +75,23 @@ public final class NemesisManager {
     }
 
     private void loadActiveRecords() {
+        if (useFileFallback) {
+            for (String keyStr : yamlConfig.getKeys(false)) {
+                boolean isActive = yamlConfig.getBoolean(keyStr + ".is_active", false);
+                if (isActive) {
+                    NemesisRecord record = new NemesisRecord(
+                            UUID.fromString(keyStr),
+                            UUID.fromString(yamlConfig.getString(keyStr + ".player_uuid")),
+                            yamlConfig.getString(keyStr + ".original_name"),
+                            yamlConfig.getString(keyStr + ".affixes"),
+                            yamlConfig.getInt(keyStr + ".kill_count"),
+                            true);
+                    activeByPlayer.put(record.getPlayerUuid(), record);
+                }
+            }
+            return;
+        }
+
         try (PreparedStatement select = connection.prepareStatement(
                 "SELECT mob_uuid, player_uuid, original_name, affixes, kill_count FROM nemesis WHERE is_active = 1");
              ResultSet resultSet = select.executeQuery()) {
@@ -140,6 +173,21 @@ public final class NemesisManager {
     }
 
     private synchronized void persistSync(NemesisRecord record) {
+        if (useFileFallback) {
+            String key = record.getMobUuid().toString();
+            yamlConfig.set(key + ".player_uuid", record.getPlayerUuid().toString());
+            yamlConfig.set(key + ".original_name", record.getOriginalName());
+            yamlConfig.set(key + ".affixes", record.getAffixesCsv());
+            yamlConfig.set(key + ".kill_count", record.getKillCount());
+            yamlConfig.set(key + ".is_active", record.isActive());
+            try {
+                yamlConfig.save(yamlFile);
+            } catch (IOException e) {
+                plugin.getLogger().severe("Failed to save nemesis.yml: " + e.getMessage());
+            }
+            return;
+        }
+
         try (PreparedStatement upsert = connection.prepareStatement(
                 "INSERT INTO nemesis (mob_uuid, player_uuid, original_name, affixes, kill_count, is_active) " +
                         "VALUES (?, ?, ?, ?, ?, ?) " +
@@ -156,5 +204,40 @@ public final class NemesisManager {
         } catch (SQLException exception) {
             plugin.getLogger().severe("Failed to save nemesis record: " + exception.getMessage());
         }
+    }
+
+    public java.util.Collection<NemesisRecord> getAllRecords() {
+        java.util.List<NemesisRecord> all = new java.util.ArrayList<>();
+        if (useFileFallback) {
+            for (String keyStr : yamlConfig.getKeys(false)) {
+                try {
+                    NemesisRecord record = new NemesisRecord(
+                            UUID.fromString(keyStr),
+                            UUID.fromString(yamlConfig.getString(keyStr + ".player_uuid")),
+                            yamlConfig.getString(keyStr + ".original_name"),
+                            yamlConfig.getString(keyStr + ".affixes"),
+                            yamlConfig.getInt(keyStr + ".kill_count"),
+                            yamlConfig.getBoolean(keyStr + ".is_active", false)
+                    );
+                    all.add(record);
+                } catch (Exception ignored) {}
+            }
+        } else if (connection != null) {
+            try (PreparedStatement select = connection.prepareStatement("SELECT mob_uuid, player_uuid, original_name, affixes, kill_count, is_active FROM nemesis");
+                 ResultSet resultSet = select.executeQuery()) {
+                while (resultSet.next()) {
+                    all.add(new NemesisRecord(
+                            UUID.fromString(resultSet.getString("mob_uuid")),
+                            UUID.fromString(resultSet.getString("player_uuid")),
+                            resultSet.getString("original_name"),
+                            resultSet.getString("affixes"),
+                            resultSet.getInt("kill_count"),
+                            resultSet.getInt("is_active") != 0));
+                }
+            } catch (SQLException exception) {
+                plugin.getLogger().severe("Failed to query nemesis database: " + exception.getMessage());
+            }
+        }
+        return all;
     }
 }
