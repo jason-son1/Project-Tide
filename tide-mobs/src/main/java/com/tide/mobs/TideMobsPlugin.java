@@ -20,6 +20,8 @@ import com.tide.mobs.quest.BountyBoardGUI;
 import com.tide.mobs.quest.BountyBoardListener;
 import com.tide.mobs.quest.BountyKillListener;
 import com.tide.mobs.quest.BountyManager;
+import com.tide.mobs.mob.MobRegistry;
+import com.tide.mobs.mob.CustomMobSpawnListener;
 import com.tide.rpg.item.ItemFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -41,6 +43,7 @@ public final class TideMobsPlugin extends JavaPlugin {
 
     private AffixRegistry affixRegistry;
     private AltarRegistry altarRegistry;
+    private MobRegistry mobRegistry;
     private BountyManager bountyManager;
     private BountyBoardGUI bountyBoardGUI;
     private NemesisManager nemesisManager;
@@ -63,12 +66,16 @@ public final class TideMobsPlugin extends JavaPlugin {
 
         this.affixRegistry = new AffixRegistry(this);
         this.altarRegistry = new AltarRegistry(this);
+        this.mobRegistry = new MobRegistry(this);
         affixRegistry.reload();
         altarRegistry.reload();
+        mobRegistry.reload();
 
         EliteProcessor eliteProcessor = new EliteProcessor();
         getServer().getPluginManager().registerEvents(
                 new EliteSpawnListener(tideStateProvider, affixRegistry, eliteProcessor), this);
+        getServer().getPluginManager().registerEvents(
+                new CustomMobSpawnListener(tideStateProvider, mobRegistry, eliteProcessor, itemFactory, economyAPI), this);
         getServer().getPluginManager().registerEvents(new AffixCombatListener(this), this);
         getServer().getPluginManager().registerEvents(new EliteDropListener(itemFactory), this);
 
@@ -93,6 +100,7 @@ public final class TideMobsPlugin extends JavaPlugin {
         if (reloadManager != null) {
             reloadManager.register("affixes", affixRegistry);
             reloadManager.register("altars", altarRegistry);
+            reloadManager.register("mobs", mobRegistry);
         }
 
         getCommand("bounty").setExecutor(this);
