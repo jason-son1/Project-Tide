@@ -55,4 +55,18 @@ public final class AltarRegistry implements Reloadable {
         }
         return null;
     }
+
+    public SoulAltar findById(String id) {
+        for (SoulAltar altar : altars) {
+            if (altar.getId().equals(id)) {
+                return altar;
+            }
+        }
+        return null;
+    }
+
+    public java.util.List<SoulAltar> getAll() {
+        return java.util.Collections.unmodifiableList(altars);
+    }
 }
+

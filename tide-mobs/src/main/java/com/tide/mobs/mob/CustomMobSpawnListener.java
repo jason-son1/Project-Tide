@@ -47,15 +47,32 @@ public final class CustomMobSpawnListener implements Listener {
         this.economyAPI = economyAPI;
     }
 
+    private static final NamespacedKey FORCE_CUSTOM_MOB_KEY = new NamespacedKey("tide", "force_custom_mob_id");
+
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
+        LivingEntity entity = event.getEntity();
+
+        // Check if there is a forced custom mob ID in PDC
+        String forcedId = null;
+        if (entity.getPersistentDataContainer().has(FORCE_CUSTOM_MOB_KEY, PersistentDataType.STRING)) {
+            forcedId = entity.getPersistentDataContainer().get(FORCE_CUSTOM_MOB_KEY, PersistentDataType.STRING);
+        }
+
+        if (forcedId != null) {
+            CustomMob mob = mobRegistry.get(forcedId);
+            if (mob != null) {
+                transform(entity, mob);
+            }
+            return;
+        }
+
         // Handle natural and spawner spawns
         if (event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL &&
                 event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.SPAWNER) {
             return;
         }
 
-        LivingEntity entity = event.getEntity();
         String baseTypeName = entity.getType().name();
 
         List<CustomMob> candidates = new ArrayList<>();

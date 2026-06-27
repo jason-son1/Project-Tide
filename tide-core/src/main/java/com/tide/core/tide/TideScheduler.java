@@ -28,6 +28,7 @@ public final class TideScheduler implements TideStateProvider {
     private long secondsRemaining;
     private LocalDate lastScheduledSpringDate;
     private BukkitTask task;
+    private long cycleDurationMinutes = 120;
 
     public TideScheduler(TideCorePlugin plugin) {
         this.plugin = plugin;
@@ -35,7 +36,8 @@ public final class TideScheduler implements TideStateProvider {
     }
 
     public void start() {
-        secondsRemaining = cycleDurationMinutes() * 60L;
+        cycleDurationMinutes = plugin.getConfig().getLong("tide.cycle-duration-minutes", 120);
+        secondsRemaining = cycleDurationMinutes * 60L;
         for (Player player : Bukkit.getOnlinePlayers()) {
             bossBar.addPlayer(player);
         }
@@ -58,7 +60,7 @@ public final class TideScheduler implements TideStateProvider {
         secondsRemaining--;
         if (secondsRemaining <= 0) {
             transition();
-            secondsRemaining = cycleDurationMinutes() * 60L;
+            secondsRemaining = cycleDurationMinutes * 60L;
         }
         updateBossBarText();
     }
@@ -116,7 +118,23 @@ public final class TideScheduler implements TideStateProvider {
     }
 
     private long cycleDurationMinutes() {
-        return Math.max(1, plugin.getConfig().getLong("tide.cycle-duration-minutes", 120));
+        return cycleDurationMinutes;
+    }
+
+    public long getCycleDurationMinutes() {
+        return cycleDurationMinutes;
+    }
+
+    public void setCycleDurationMinutes(long minutes) {
+        long oldDuration = this.cycleDurationMinutes * 60L;
+        this.cycleDurationMinutes = Math.max(1, minutes);
+        long newDuration = this.cycleDurationMinutes * 60L;
+        if (secondsRemaining > newDuration) {
+            secondsRemaining = newDuration;
+        }
+        plugin.getConfig().set("tide.cycle-duration-minutes", minutes);
+        plugin.saveConfig();
+        updateBossBarText();
     }
 
     private void updateBossBarText() {

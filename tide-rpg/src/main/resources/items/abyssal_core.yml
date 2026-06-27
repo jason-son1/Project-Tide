@@ -1,0 +1,25 @@
+id: abyssal_core
+display_name: "§9[심연 핵]"
+material: HEART_OF_THE_SEA
+custom_model_data: 2005
+gear_score: 0
+tier: 3
+
+base_stats:
+  damage: 0
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 0
+
+socket_count: 0
+socket_max: 0
+
+sell_price: 150
+
+lore_template:
+  - "§9✦ 등급: 희귀 소재"
+  - "§7딥 마인 미니보스 처치 또는 미니보스 방 상자에서 드롭됩니다."
+  - "§7T3 이상 장비 강화 시 성공률을 높이는 데 사용됩니다."
+  - "§8— 심연의 깊은 곳에서만 생성되는 에너지 결정 —"

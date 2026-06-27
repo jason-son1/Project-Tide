@@ -1,0 +1,25 @@
+id: t3_riptide_bow
+display_name: "§d[역류의 장궁]"
+material: BOW
+custom_model_data: 1525
+gear_score: 600
+tier: 3
+
+base_stats:
+  damage: 30
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 4
+  defense_per_star: 0
+
+socket_count: 2
+socket_max: 3
+
+sell_price: 200
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"

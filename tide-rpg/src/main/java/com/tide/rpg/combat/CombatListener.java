@@ -91,4 +91,42 @@ public final class CombatListener implements Listener {
         }
         return false;
     }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCombatHealthDisplay(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity victim)) {
+            return;
+        }
+        Player attacker = null;
+        if (event.getDamager() instanceof Player p) {
+            attacker = p;
+        } else if (event.getDamager() instanceof org.bukkit.entity.Projectile proj && proj.getShooter() instanceof Player p) {
+            attacker = p;
+        }
+
+        if (attacker == null) {
+            return;
+        }
+
+        double maxHp = victim.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).getValue();
+        double currentHp = Math.max(0.0, victim.getHealth() - event.getFinalDamage());
+
+        String name = victim.getCustomName() != null ? victim.getCustomName() : victim.getType().name().replace("_", " ");
+        double ratio = currentHp / maxHp;
+        int filled = (int) Math.round(ratio * 10.0);
+        filled = Math.max(0, Math.min(10, filled));
+
+        StringBuilder bar = new StringBuilder();
+        bar.append("§c");
+        for (int i = 0; i < filled; i++) {
+            bar.append("■");
+        }
+        bar.append("§7");
+        for (int i = filled; i < 10; i++) {
+            bar.append("■");
+        }
+
+        String message = String.format("§6§l%s §7| §f%.1f §7/ §f%.1f HP §7[%s§7]", name, currentHp, maxHp, bar.toString());
+        attacker.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR, new net.md_5.bungee.api.chat.TextComponent(message));
+    }
 }

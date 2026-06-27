@@ -13,3 +13,7 @@ commands:
   bountycontract:
     description: 네메시스 현상금 대행 계약을 등록하거나 게시판을 엽니다.
     usage: /bountycontract <post <선불금> <성공보수>|list>
+  altar:
+    description: 보스 제단을 생성/관리합니다. (tide.admin 필요)
+    usage: /altar <create <id> [boss_type]|list|info <id>|remove <id>>
+    permission: tide.admin

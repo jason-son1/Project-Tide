@@ -1,0 +1,16 @@
+id: rune_slow_3
+display_name: "§9감속의 룬 III"
+type: slow
+grade: 3
+material: SEA_LANTERN
+custom_model_data: 3022
+
+effect:
+  type: slow
+  value: 0.30
+
+fusion:
+  input_id: rune_slow_2
+  input_count: 3
+  cost_clam: 360
+  output_id: rune_slow_3

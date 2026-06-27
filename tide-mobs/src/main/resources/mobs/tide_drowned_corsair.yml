@@ -1,0 +1,26 @@
+id: tide_drowned_corsair
+base_mob: DROWNED
+display_name: "§b[밀물의 익사자 해적]"
+custom_model_data: 2001
+
+stats:
+  hp_multiplier: 1.8
+  damage_multiplier: 1.6
+
+affixes:
+  - "신속의"
+
+spawn:
+  worlds: ["world"]
+  biomes: ["BEACH", "OCEAN"]
+  tide_states: ["HIGH_TIDE"]
+  weight: 12
+
+drops:
+  - currency: clam
+    amount: [40, 90]
+    chance: 1.0
+  - item_id: t1_oak_bow
+    chance: 0.08
+  - item_id: rune_lightning_1
+    chance: 0.05

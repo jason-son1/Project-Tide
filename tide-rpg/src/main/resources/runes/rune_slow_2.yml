@@ -1,0 +1,16 @@
+id: rune_slow_2
+display_name: "§9감속의 룬 II"
+type: slow
+grade: 2
+material: PRISMARINE_CRYSTALS
+custom_model_data: 3021
+
+effect:
+  type: slow
+  value: 0.20
+
+fusion:
+  input_id: rune_slow_1
+  input_count: 3
+  cost_clam: 180
+  output_id: rune_slow_2

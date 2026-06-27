@@ -1,0 +1,24 @@
+id: abyssal_husk
+base_mob: HUSK
+display_name: "§6[사막의 미라]"
+custom_model_data: 2002
+
+stats:
+  hp_multiplier: 1.6
+  damage_multiplier: 1.7
+
+affixes:
+  - "강철의"
+
+spawn:
+  worlds: ["world"]
+  biomes: ["DESERT"]
+  tide_states: []
+  weight: 10
+
+drops:
+  - currency: clam
+    amount: [30, 70]
+    chance: 1.0
+  - item_id: t1_leather_helmet
+    chance: 0.1

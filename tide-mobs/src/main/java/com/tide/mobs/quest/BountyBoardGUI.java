@@ -28,6 +28,28 @@ public final class BountyBoardGUI {
         for (int i = 0; i < quests.size() && i < 27; i++) {
             inventory.setItem(i * 2 + 1 <= 26 ? i * 2 + 1 : i, renderQuest(quests.get(i)));
         }
+
+        ItemStack guideBook = new ItemStack(Material.WRITTEN_BOOK);
+        ItemMeta guideMeta = guideBook.getItemMeta();
+        if (guideMeta != null) {
+            guideMeta.setDisplayName("§a📖 현상금 가이드 보기");
+            guideMeta.setLore(List.of("§7클릭하면 현상금 가이드를 엽니다."));
+            guideBook.setItemMeta(guideMeta);
+        }
+        inventory.setItem(8, guideBook);
+
+        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta fillerMeta = filler.getItemMeta();
+        if (fillerMeta != null) {
+            fillerMeta.setDisplayName(" ");
+            filler.setItemMeta(fillerMeta);
+        }
+        for (int i = 0; i < inventory.getSize(); i++) {
+            if (inventory.getItem(i) == null) {
+                inventory.setItem(i, filler);
+            }
+        }
+
         player.openInventory(inventory);
     }
 

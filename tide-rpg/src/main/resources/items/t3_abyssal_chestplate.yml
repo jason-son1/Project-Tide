@@ -1,0 +1,26 @@
+id: t3_abyssal_chestplate
+display_name: "§5[심연의 갑주]"
+material: DIAMOND_CHESTPLATE
+custom_model_data: 1521
+gear_score: 570
+tier: 3
+
+base_stats:
+  damage: 0
+  defense: 28
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 3.5
+
+socket_count: 2
+socket_max: 3
+
+sell_price: 190
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§8— 딥 마인 심층에서만 발견되는 갑옷 —"

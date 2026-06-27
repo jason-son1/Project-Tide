@@ -261,7 +261,7 @@ effects:
         volume: 0.8
         pitch: 1.5
     particles:
-      - type: "WITCH_SPELL"
+      - type: "WITCH"
         count: 40
         spread-x: 0.8
         spread-y: 1.0

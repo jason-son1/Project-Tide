@@ -26,9 +26,38 @@ public final class ContractBoardGUI {
 
         List<ContractRecord> contracts = contractManager.openContracts();
         holder.contracts = contracts;
-        for (int i = 0; i < contracts.size() && i < 27; i++) {
-            inventory.setItem(i, render(contracts.get(i)));
+        for (int i = 0; i < contracts.size(); i++) {
+            int slot = i;
+            if (slot >= 8) {
+                slot++;
+            }
+            if (slot >= 27) {
+                break;
+            }
+            inventory.setItem(slot, render(contracts.get(i)));
         }
+
+        ItemStack guideBook = new ItemStack(Material.WRITTEN_BOOK);
+        ItemMeta guideMeta = guideBook.getItemMeta();
+        if (guideMeta != null) {
+            guideMeta.setDisplayName("§a📖 계약 가이드 보기");
+            guideMeta.setLore(List.of("§7클릭하면 계약 및 현상금 가이드를 엽니다."));
+            guideBook.setItemMeta(guideMeta);
+        }
+        inventory.setItem(8, guideBook);
+
+        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta fillerMeta = filler.getItemMeta();
+        if (fillerMeta != null) {
+            fillerMeta.setDisplayName(" ");
+            filler.setItemMeta(fillerMeta);
+        }
+        for (int i = 0; i < inventory.getSize(); i++) {
+            if (inventory.getItem(i) == null) {
+                inventory.setItem(i, filler);
+            }
+        }
+
         viewer.openInventory(inventory);
     }
 

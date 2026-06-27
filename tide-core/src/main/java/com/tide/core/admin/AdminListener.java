@@ -2,14 +2,17 @@ package com.tide.core.admin;
 
 import com.tide.core.economy.EconomyAPI;
 import com.tide.core.reload.ReloadManager;
+import com.tide.core.tide.BountyTempoProvider;
 import com.tide.core.tide.TideScheduler;
 import com.tide.core.tide.TideState;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 public final class AdminListener implements Listener {
 
@@ -44,6 +47,45 @@ public final class AdminListener implements Listener {
             case AdminGUI.RELOAD_AFFIXES_BUTTON -> doReload(admin, "affixes");
             case AdminGUI.RELOAD_RUNES_BUTTON -> doReload(admin, "runes");
             case AdminGUI.RELOAD_ALL_BUTTON -> reloadAll(admin);
+            case AdminGUI.TIDE_TEMPO_SLOT -> {
+                long delta = event.getClick().isShiftClick() ? 60 : 10;
+                if (event.getClick().isRightClick()) {
+                    delta = -delta;
+                }
+                long newVal = Math.max(1, scheduler.getCycleDurationMinutes() + delta);
+                scheduler.setCycleDurationMinutes(newVal);
+                admin.sendMessage("§a조수 주기를 §f" + newVal + "분§a으로 조정했습니다.");
+            }
+            case AdminGUI.BOUNTY_DAILY_TEMPO_SLOT -> {
+                long delta = event.getClick().isShiftClick() ? 60 : 10;
+                if (event.getClick().isRightClick()) {
+                    delta = -delta;
+                }
+                RegisteredServiceProvider<BountyTempoProvider> rsp = Bukkit.getServicesManager().getRegistration(BountyTempoProvider.class);
+                BountyTempoProvider bountyProvider = rsp != null ? rsp.getProvider() : null;
+                if (bountyProvider != null) {
+                    long newVal = Math.max(1, bountyProvider.getDailyResetIntervalMinutes() + delta);
+                    bountyProvider.setDailyResetIntervalMinutes(newVal);
+                    admin.sendMessage("§a현상금 일일 주기를 §f" + newVal + "분§a으로 조정했습니다.");
+                } else {
+                    admin.sendMessage("§c현상금 서비스가 아직 로드되지 않았습니다.");
+                }
+            }
+            case AdminGUI.BOUNTY_WEEKLY_TEMPO_SLOT -> {
+                long delta = event.getClick().isShiftClick() ? 60 : 10;
+                if (event.getClick().isRightClick()) {
+                    delta = -delta;
+                }
+                RegisteredServiceProvider<BountyTempoProvider> rsp = Bukkit.getServicesManager().getRegistration(BountyTempoProvider.class);
+                BountyTempoProvider bountyProvider = rsp != null ? rsp.getProvider() : null;
+                if (bountyProvider != null) {
+                    long newVal = Math.max(1, bountyProvider.getWeeklyResetIntervalMinutes() + delta);
+                    bountyProvider.setWeeklyResetIntervalMinutes(newVal);
+                    admin.sendMessage("§a현상금 주간 주기를 §f" + newVal + "분§a으로 조정했습니다.");
+                } else {
+                    admin.sendMessage("§c현상금 서비스가 아직 로드되지 않았습니다.");
+                }
+            }
             default -> {
                 if (event.getRawSlot() >= AdminGUI.PLAYER_ROW_START && event.getRawSlot() <= AdminGUI.PLAYER_ROW_END) {
                     showPlayerInfo(admin, event.getCurrentItem());

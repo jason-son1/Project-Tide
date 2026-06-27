@@ -1,0 +1,25 @@
+id: deepmine_lantern
+display_name: "§e[심연 광부 랜턴]"
+material: LANTERN
+custom_model_data: 2002
+gear_score: 0
+tier: 2
+
+base_stats:
+  damage: 0
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 0
+
+socket_count: 0
+socket_max: 0
+
+sell_price: 45
+
+lore_template:
+  - "§e✦ 딥 마인 전용 랜턴"
+  - "§7소지 시 딥 마인 내부에서 야간투시 효과를 부여합니다."
+  - "§7빛이 없는 심연에서도 길을 잃지 마세요."
+  - "§8— 딥 마인 보물 상자에서 획득 가능 —"

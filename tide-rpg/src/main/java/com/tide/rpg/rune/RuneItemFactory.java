@@ -28,6 +28,7 @@ public final class RuneItemFactory {
         meta.getPersistentDataContainer().set(TideKeys.RUNE_ID, PersistentDataType.STRING, definition.getId());
         meta.setLore(java.util.List.of("§7타입: §f" + definition.getType(),
                 "§7등급: §f" + definition.getGrade()));
+        meta.setEnchantmentGlintOverride(true);
         itemStack.setItemMeta(meta);
         return itemStack;
     }

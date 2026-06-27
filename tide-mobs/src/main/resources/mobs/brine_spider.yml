@@ -1,0 +1,25 @@
+id: brine_spider
+base_mob: CAVE_SPIDER
+display_name: "§2[염수 거미]"
+custom_model_data: 2011
+
+stats:
+  hp_multiplier: 1.5
+  damage_multiplier: 1.9
+
+affixes:
+  - "분열의"
+  - "강철의"
+
+spawn:
+  worlds: ["world"]
+  biomes: []
+  tide_states: []
+  weight: 11
+
+drops:
+  - currency: clam
+    amount: [25, 60]
+    chance: 1.0
+  - item_id: t1_leather_boots
+    chance: 0.08

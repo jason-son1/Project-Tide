@@ -1,0 +1,26 @@
+id: t2_chainmail_helmet
+display_name: "§b[심해 사슬 투구]"
+material: CHAINMAIL_HELMET
+custom_model_data: 1510
+gear_score: 210
+tier: 2
+
+base_stats:
+  damage: 0
+  defense: 10
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 1.5
+
+socket_count: 1
+socket_max: 2
+
+sell_price: 55
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§8— 딥 마인 초입에서 발견된 사슬 갑옷 —"

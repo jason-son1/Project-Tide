@@ -1,0 +1,24 @@
+id: rustfang_skeleton
+base_mob: SKELETON
+display_name: "§7[녹슨 송곳니 궁사]"
+custom_model_data: 2007
+
+stats:
+  hp_multiplier: 1.5
+  damage_multiplier: 1.8
+
+affixes:
+  - "분열의"
+
+spawn:
+  worlds: ["world"]
+  biomes: ["WINDSWEPT_HILLS"]
+  tide_states: []
+  weight: 10
+
+drops:
+  - currency: clam
+    amount: [40, 80]
+    chance: 1.0
+  - item_id: t1_oak_bow
+    chance: 0.06

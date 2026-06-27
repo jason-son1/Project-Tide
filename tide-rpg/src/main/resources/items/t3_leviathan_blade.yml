@@ -1,0 +1,26 @@
+id: t3_leviathan_blade
+display_name: "§d[레비아탄의 검]"
+material: DIAMOND_SWORD
+custom_model_data: 1524
+gear_score: 650
+tier: 3
+
+base_stats:
+  damage: 34
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 4.5
+  defense_per_star: 0
+
+socket_count: 3
+socket_max: 3
+
+sell_price: 220
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§8— 심해 거수의 이빨로 벼려낸 검 —"

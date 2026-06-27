@@ -1,0 +1,10 @@
+id: rune_berserk_1
+display_name: "§4광전사의 룬 I"
+type: berserk
+grade: 1
+material: BLAZE_POWDER
+custom_model_data: 3030
+
+effect:
+  type: berserk
+  value: 0.30

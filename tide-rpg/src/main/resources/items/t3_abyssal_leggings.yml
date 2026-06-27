@@ -1,0 +1,26 @@
+id: t3_abyssal_leggings
+display_name: "§5[심연의 다리보호대]"
+material: DIAMOND_LEGGINGS
+custom_model_data: 1522
+gear_score: 530
+tier: 3
+
+base_stats:
+  damage: 0
+  defense: 25
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 3
+
+socket_count: 2
+socket_max: 3
+
+sell_price: 175
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§8— 딥 마인 심층에서만 발견되는 갑옷 —"

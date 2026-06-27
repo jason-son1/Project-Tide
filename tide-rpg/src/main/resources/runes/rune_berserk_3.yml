@@ -1,0 +1,16 @@
+id: rune_berserk_3
+display_name: "§4광전사의 룬 III"
+type: berserk
+grade: 3
+material: BLAZE_ROD
+custom_model_data: 3032
+
+effect:
+  type: berserk
+  value: 0.30
+
+fusion:
+  input_id: rune_berserk_2
+  input_count: 3
+  cost_clam: 440
+  output_id: rune_berserk_3

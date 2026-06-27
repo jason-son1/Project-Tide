@@ -14,6 +14,7 @@ public final class BossInstance {
     private final Set<UUID> participants = new HashSet<>();
     private int phase = 1;
     private boolean enraged;
+    private String bossType = "VOID_KNIGHT";
 
     public BossInstance(String altarId, LivingEntity entity) {
         this.altarId = altarId;
@@ -52,4 +53,7 @@ public final class BossInstance {
     public void setEnraged(boolean enraged) {
         this.enraged = enraged;
     }
+
+    public String getBossType() { return bossType; }
+    public void setBossType(String bossType) { this.bossType = bossType; }
 }

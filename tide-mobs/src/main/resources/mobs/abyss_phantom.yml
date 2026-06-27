@@ -1,0 +1,25 @@
+id: abyss_phantom
+base_mob: PHANTOM
+display_name: "§8[심연의 유령]"
+custom_model_data: 2009
+
+stats:
+  hp_multiplier: 2.5
+  damage_multiplier: 2.4
+
+affixes:
+  - "분열의"
+  - "신속의"
+
+spawn:
+  worlds: ["world"]
+  biomes: ["OCEAN"]
+  tide_states: ["BLOOD_TIDE"]
+  weight: 6
+
+drops:
+  - currency: pearl
+    amount: [2, 4]
+    chance: 0.3
+  - item_id: rune_lightning_2
+    chance: 0.04

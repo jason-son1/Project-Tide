@@ -25,6 +25,12 @@ public final class BountyBoardListener implements Listener {
             return;
         }
         int index = event.getRawSlot();
+        if (index == 8) {
+            com.tide.core.TideCorePlugin corePlugin = com.tide.core.TideCorePlugin.getPlugin(com.tide.core.TideCorePlugin.class);
+            new com.tide.core.guide.GuideGUI(corePlugin.getGuideRegistry()).openEntries(player, com.tide.core.guide.GuideCategory.BOUNTY);
+            return;
+        }
+
         var quests = holder.getQuests();
         int questIndex = -1;
         for (int i = 0; i < quests.size(); i++) {

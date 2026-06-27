@@ -14,19 +14,23 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.tide.core.tide.BountyTempoProvider;
+
 /**
  * In-memory daily/weekly bounty state per player — regenerated when the
  * calendar date (daily) or ISO week (weekly) rolls over. Lost on restart;
  * acceptable for a prototype, persistence can be added later if needed.
  */
-public final class BountyManager {
+public final class BountyManager implements BountyTempoProvider {
 
     private final AffixRegistry affixRegistry;
     private final EconomyAPI economyAPI;
     private final Map<UUID, List<BountyQuest>> dailyQuests = new ConcurrentHashMap<>();
     private final Map<UUID, BountyQuest> weeklyQuests = new ConcurrentHashMap<>();
-    private final Map<UUID, LocalDate> lastDailyReset = new ConcurrentHashMap<>();
-    private final Map<UUID, Integer> lastWeeklyReset = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastDailyResetTime = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastWeeklyResetTime = new ConcurrentHashMap<>();
+    private long dailyResetIntervalMinutes = 1440;
+    private long weeklyResetIntervalMinutes = 10080;
 
     public BountyManager(AffixRegistry affixRegistry, EconomyAPI economyAPI) {
         this.affixRegistry = affixRegistry;
@@ -45,16 +49,54 @@ public final class BountyManager {
 
     private void ensureFresh(Player player) {
         UUID uuid = player.getUniqueId();
-        LocalDate today = LocalDate.now();
-        if (!today.equals(lastDailyReset.get(uuid))) {
+        long now = System.currentTimeMillis();
+
+        Long lastDaily = lastDailyResetTime.get(uuid);
+        if (lastDaily == null || (now - lastDaily) >= dailyResetIntervalMinutes * 60000L) {
             dailyQuests.put(uuid, generateDaily());
-            lastDailyReset.put(uuid, today);
+            lastDailyResetTime.put(uuid, now);
         }
-        int isoWeek = today.get(IsoFields.WEEK_BASED_YEAR) * 100 + today.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
-        if (!Integer.valueOf(isoWeek).equals(lastWeeklyReset.get(uuid))) {
+
+        Long lastWeekly = lastWeeklyResetTime.get(uuid);
+        if (lastWeekly == null || (now - lastWeekly) >= weeklyResetIntervalMinutes * 60000L) {
             weeklyQuests.put(uuid, generateWeekly());
-            lastWeeklyReset.put(uuid, isoWeek);
+            lastWeeklyResetTime.put(uuid, now);
         }
+    }
+
+    public long getDailyResetIntervalMinutes() {
+        return dailyResetIntervalMinutes;
+    }
+
+    public void setDailyResetIntervalMinutes(long minutes) {
+        this.dailyResetIntervalMinutes = Math.max(1, minutes);
+        try {
+            com.tide.mobs.TideMobsPlugin plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(com.tide.mobs.TideMobsPlugin.class);
+            plugin.getConfig().set("bounty.daily-reset-interval-minutes", this.dailyResetIntervalMinutes);
+            plugin.saveConfig();
+        } catch (Exception ignored) {}
+    }
+
+    public long getWeeklyResetIntervalMinutes() {
+        return weeklyResetIntervalMinutes;
+    }
+
+    public void setWeeklyResetIntervalMinutes(long minutes) {
+        this.weeklyResetIntervalMinutes = Math.max(1, minutes);
+        try {
+            com.tide.mobs.TideMobsPlugin plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(com.tide.mobs.TideMobsPlugin.class);
+            plugin.getConfig().set("bounty.weekly-reset-interval-minutes", this.weeklyResetIntervalMinutes);
+            plugin.saveConfig();
+        } catch (Exception ignored) {}
+    }
+
+    public void forceReset(Player player) {
+        UUID uuid = player.getUniqueId();
+        dailyQuests.put(uuid, generateDaily());
+        weeklyQuests.put(uuid, generateWeekly());
+        long now = System.currentTimeMillis();
+        lastDailyResetTime.put(uuid, now);
+        lastWeeklyResetTime.put(uuid, now);
     }
 
     private List<BountyQuest> generateDaily() {

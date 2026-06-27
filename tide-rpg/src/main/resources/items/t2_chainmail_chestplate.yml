@@ -1,0 +1,26 @@
+id: t2_chainmail_chestplate
+display_name: "§b[심해 사슬 갑옷]"
+material: CHAINMAIL_CHESTPLATE
+custom_model_data: 1511
+gear_score: 270
+tier: 2
+
+base_stats:
+  damage: 0
+  defense: 16
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 2
+
+socket_count: 1
+socket_max: 2
+
+sell_price: 70
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§8— 딥 마인 초입에서 발견된 사슬 갑옷 —"

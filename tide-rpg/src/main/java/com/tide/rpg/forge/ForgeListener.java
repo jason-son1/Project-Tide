@@ -1,11 +1,15 @@
 package com.tide.rpg.forge;
 
+import com.tide.core.TideCorePlugin;
 import com.tide.core.economy.EconomyAPI;
+import com.tide.core.guide.GuideGUI;
+import com.tide.core.guide.GuideCategory;
 import com.tide.rpg.TideKeys;
 import com.tide.rpg.item.LoreRenderer;
 import com.tide.rpg.rune.RuneDefinition;
 import com.tide.rpg.rune.RuneItemFactory;
 import com.tide.rpg.rune.RuneRegistry;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -46,35 +50,99 @@ public final class ForgeListener implements Listener {
         if (!(event.getInventory().getHolder() instanceof ForgeHolder holder)) {
             return;
         }
+        
+        Inventory inventory = event.getInventory();
         int slot = event.getRawSlot();
         ForgeTab tab = holder.getTab();
+        Player player = (Player) event.getWhoClicked();
 
-        if (ForgeGUI.placementSlots(tab).contains(slot)) {
-            return; // allow free placement/removal
-        }
-        event.setCancelled(true);
-
-        if (!(event.getWhoClicked() instanceof Player player)) {
+        // Shift 클릭 및 핫바 키 스왑, 더블 클릭은 버그 방지를 위해 전면 취소
+        if (event.getClick().isShiftClick() 
+                || event.getAction().name().contains("HOTBAR") 
+                || event.getClick() == org.bukkit.event.inventory.ClickType.DOUBLE_CLICK) {
+            event.setCancelled(true);
             return;
         }
-        Inventory inventory = event.getInventory();
 
-        switch (slot) {
-            case ForgeGUI.TAB_REINFORCE_BUTTON -> switchTab(player, holder, inventory, ForgeTab.REINFORCE);
-            case ForgeGUI.TAB_SOCKET_BUTTON -> switchTab(player, holder, inventory, ForgeTab.SOCKET);
-            case ForgeGUI.TAB_REROLL_BUTTON -> switchTab(player, holder, inventory, ForgeTab.REROLL);
-            case ForgeGUI.TAB_FUSION_BUTTON -> switchTab(player, holder, inventory, ForgeTab.FUSION);
-            default -> {
-                if (tab == ForgeTab.REINFORCE && slot == ForgeGUI.REINFORCE_ATTEMPT_BUTTON) {
-                    handleReinforce(player, inventory);
-                } else if (tab == ForgeTab.SOCKET && slot == ForgeGUI.SOCKET_ATTACH_BUTTON) {
-                    handleSocketAttach(player, inventory);
-                } else if (tab == ForgeTab.REROLL && slot == ForgeGUI.REROLL_BUTTON) {
-                    handleReroll(player, inventory);
-                } else if (tab == ForgeTab.FUSION && slot == ForgeGUI.FUSION_BUTTON) {
-                    handleFusion(player, inventory);
+        // 플레이어 본인 인벤토리(아래쪽) 내의 클릭은 기본 허용
+        if (slot >= inventory.getSize()) {
+            return; 
+        }
+
+        // 대장간 인벤토리(상단 54칸) 내부 클릭 처리
+        if (!ForgeGUI.placementSlots(tab).contains(slot)) {
+            event.setCancelled(true);
+            
+            switch (slot) {
+                case ForgeGUI.TAB_REINFORCE_BUTTON -> switchTab(player, holder, inventory, ForgeTab.REINFORCE);
+                case ForgeGUI.TAB_SOCKET_BUTTON -> switchTab(player, holder, inventory, ForgeTab.SOCKET);
+                case ForgeGUI.TAB_REROLL_BUTTON -> switchTab(player, holder, inventory, ForgeTab.REROLL);
+                case ForgeGUI.TAB_FUSION_BUTTON -> switchTab(player, holder, inventory, ForgeTab.FUSION);
+                case ForgeGUI.GUIDE_BUTTON_SLOT -> {
+                    TideCorePlugin corePlugin = TideCorePlugin.getInstance();
+                    if (corePlugin != null && corePlugin.getGuideRegistry() != null) {
+                        new GuideGUI(corePlugin.getGuideRegistry()).openEntries(player, GuideCategory.FORGE);
+                    } else {
+                        player.sendMessage("§c가이드를 로드할 수 없습니다.");
+                    }
+                }
+                default -> {
+                    if (tab == ForgeTab.REINFORCE && slot == ForgeGUI.REINFORCE_ATTEMPT_BUTTON) {
+                        handleReinforce(player, inventory);
+                    } else if (tab == ForgeTab.SOCKET && slot == ForgeGUI.SOCKET_ATTACH_BUTTON) {
+                        handleSocketAttach(player, inventory);
+                    } else if (tab == ForgeTab.REROLL && slot == ForgeGUI.REROLL_BUTTON) {
+                        handleReroll(player, inventory);
+                    } else if (tab == ForgeTab.FUSION && slot == ForgeGUI.FUSION_BUTTON) {
+                        handleFusion(player, inventory);
+                    }
                 }
             }
+            return;
+        }
+
+        // 배치 슬롯 클릭 처리 - 무조건 이벤트를 취소하고 수동 제어하여 마커 복사 및 아이템 누락 버그 방지
+        event.setCancelled(true);
+
+        ItemStack clickedItem = event.getCurrentItem();
+        ItemStack cursorItem = event.getCursor();
+
+        // A. 플레이어가 맨손으로 배치 슬롯을 클릭했을 때 (아이템 꺼내기)
+        if (cursorItem == null || cursorItem.getType().isAir()) {
+            if (clickedItem != null && !clickedItem.getType().isAir() && !isMarker(clickedItem)) {
+                player.setItemOnCursor(clickedItem);
+                restorePlaceholder(inventory, tab, slot);
+                updateForgeInfo(inventory, tab);
+                player.updateInventory();
+            }
+        }
+        // B. 플레이어가 아이템을 쥐고 배치 슬롯을 클릭했을 때 (아이템 넣기 또는 교체)
+        else {
+            if (!isValidForSlot(tab, slot, cursorItem)) {
+                player.sendMessage("§c여기에 배치할 수 없는 아이템입니다.");
+                return;
+            }
+
+            if (clickedItem == null || clickedItem.getType().isAir() || isMarker(clickedItem)) {
+                // 슬롯이 비었거나 마커인 경우: 들고 있는 아이템 배치
+                inventory.setItem(slot, cursorItem);
+                player.setItemOnCursor(null);
+            } else {
+                // 기존의 유효한 아이템과 스왑
+                ItemStack temp = clickedItem;
+                inventory.setItem(slot, cursorItem);
+                player.setItemOnCursor(temp);
+            }
+            updateForgeInfo(inventory, tab);
+            player.updateInventory();
+        }
+    }
+
+    @EventHandler
+    public void onDrag(org.bukkit.event.inventory.InventoryDragEvent event) {
+        if (event.getInventory().getHolder() instanceof ForgeHolder) {
+            // 대장간 GUI 내에서의 드래그 방지
+            event.setCancelled(true);
         }
     }
 
@@ -96,7 +164,10 @@ public final class ForgeListener implements Listener {
         for (int slot : ForgeGUI.placementSlots(tab)) {
             ItemStack item = inventory.getItem(slot);
             if (item != null && !isMarker(item)) {
-                player.getInventory().addItem(item);
+                java.util.Map<Integer, ItemStack> remaining = player.getInventory().addItem(item);
+                for (ItemStack remainingItem : remaining.values()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), remainingItem);
+                }
             }
             inventory.setItem(slot, null);
         }
@@ -323,6 +394,143 @@ public final class ForgeListener implements Listener {
         } else {
             stack.setAmount(stack.getAmount() - 1);
             inventory.setItem(slot, stack);
+        }
+    }
+
+    private void restorePlaceholder(Inventory inventory, ForgeTab tab, int slot) {
+        if (tab == ForgeTab.REINFORCE) {
+            if (slot == ForgeGUI.REINFORCE_STONE_SLOT) {
+                inventory.setItem(slot, createMarker(Material.QUARTZ, "§7강화석을 놓으세요"));
+            } else if (slot == ForgeGUI.REINFORCE_GEAR_SLOT) {
+                inventory.setItem(slot, createMarker(Material.IRON_SWORD, "§7강화할 장비를 놓으세요"));
+            } else if (slot == ForgeGUI.REINFORCE_SCROLL_SLOT) {
+                inventory.setItem(slot, createMarker(Material.PAPER, "§7보호권 (선택)"));
+            }
+        } else if (tab == ForgeTab.SOCKET) {
+            if (slot == ForgeGUI.SOCKET_GEAR_SLOT) {
+                inventory.setItem(slot, createMarker(Material.IRON_SWORD, "§7장비를 놓으세요"));
+            } else if (slot == ForgeGUI.SOCKET_1_SLOT) {
+                inventory.setItem(slot, createMarker(Material.GRAY_STAINED_GLASS_PANE, "§7소켓 1 - 룬을 놓으세요"));
+            } else if (slot == ForgeGUI.SOCKET_2_SLOT) {
+                inventory.setItem(slot, createMarker(Material.GRAY_STAINED_GLASS_PANE, "§7소켓 2 - 룬을 놓으세요"));
+            } else if (slot == ForgeGUI.SOCKET_3_SLOT) {
+                inventory.setItem(slot, createMarker(Material.GRAY_STAINED_GLASS_PANE, "§7소켓 3 - 룬을 놓으세요"));
+            }
+        } else if (tab == ForgeTab.REROLL) {
+            if (slot == ForgeGUI.REROLL_GEAR_SLOT) {
+                inventory.setItem(slot, createMarker(Material.IRON_SWORD, "§7장비를 놓으세요"));
+            }
+        } else if (tab == ForgeTab.FUSION) {
+            if (slot == ForgeGUI.FUSION_MATERIAL_1_SLOT) {
+                inventory.setItem(slot, createMarker(Material.AMETHYST_SHARD, "§7재료 룬 1"));
+            } else if (slot == ForgeGUI.FUSION_MATERIAL_2_SLOT) {
+                inventory.setItem(slot, createMarker(Material.AMETHYST_SHARD, "§7재료 룬 2"));
+            } else if (slot == ForgeGUI.FUSION_MATERIAL_3_SLOT) {
+                inventory.setItem(slot, createMarker(Material.AMETHYST_SHARD, "§7재료 룬 3"));
+            }
+        }
+    }
+
+    private ItemStack createMarker(Material material, String name) {
+        ItemStack itemStack = new ItemStack(material);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
+    }
+
+    private boolean isValidForSlot(ForgeTab tab, int slot, ItemStack item) {
+        if (item == null || item.getType().isAir()) {
+            return false;
+        }
+        if (isMarker(item)) {
+            return false;
+        }
+
+        switch (tab) {
+            case REINFORCE -> {
+                if (slot == ForgeGUI.REINFORCE_GEAR_SLOT) {
+                    return itemIdOf(item) != null;
+                }
+                if (slot == ForgeGUI.REINFORCE_STONE_SLOT) {
+                    return "reinforce_stone".equals(itemIdOf(item));
+                }
+                if (slot == ForgeGUI.REINFORCE_SCROLL_SLOT) {
+                    return "protection_scroll".equals(itemIdOf(item));
+                }
+            }
+            case SOCKET -> {
+                if (slot == ForgeGUI.SOCKET_GEAR_SLOT) {
+                    return itemIdOf(item) != null;
+                }
+                if (slot == ForgeGUI.SOCKET_1_SLOT || slot == ForgeGUI.SOCKET_2_SLOT || slot == ForgeGUI.SOCKET_3_SLOT) {
+                    return runeItemFactory.readRuneId(item) != null;
+                }
+            }
+            case REROLL -> {
+                if (slot == ForgeGUI.REROLL_GEAR_SLOT) {
+                    return itemIdOf(item) != null;
+                }
+            }
+            case FUSION -> {
+                if (slot == ForgeGUI.FUSION_MATERIAL_1_SLOT || slot == ForgeGUI.FUSION_MATERIAL_2_SLOT || slot == ForgeGUI.FUSION_MATERIAL_3_SLOT) {
+                    return runeItemFactory.readRuneId(item) != null;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void updateForgeInfo(Inventory inventory, ForgeTab tab) {
+        if (tab == ForgeTab.REINFORCE) {
+            ItemStack gear = inventory.getItem(ForgeGUI.REINFORCE_GEAR_SLOT);
+            if (gear != null && !isMarker(gear)) {
+                ItemMeta meta = gear.getItemMeta();
+                if (meta != null) {
+                    var pdc = meta.getPersistentDataContainer();
+                    int currentLevel = pdc.getOrDefault(TideKeys.REINFORCE, PersistentDataType.INTEGER, 0);
+                    if (currentLevel < 10) {
+                        int nextLevel = currentLevel + 1;
+                        int successRate = plugin.getConfig().getInt("forge.reinforce-success-rate." + nextLevel, 25);
+                        long cost = Math.round(plugin.getConfig().getDouble("forge.reinforce-cost-base", 100)
+                                * Math.pow(plugin.getConfig().getDouble("forge.reinforce-cost-multiplier", 1.5), currentLevel));
+                        
+                        ItemStack infoBook = new ItemStack(Material.BOOK);
+                        ItemMeta infoMeta = infoBook.getItemMeta();
+                        if (infoMeta != null) {
+                            infoMeta.setDisplayName("§e⚒ 강화 예측 정보");
+                            infoMeta.setLore(List.of(
+                                "§7현재 단계: §f+" + currentLevel,
+                                "§7다음 단계: §a+" + nextLevel,
+                                "§7성공 확률: §e" + successRate + "%",
+                                "§7필요 비용: §6" + cost + " 조개"
+                            ));
+                            infoBook.setItemMeta(infoMeta);
+                            inventory.setItem(ForgeGUI.REINFORCE_INFO_SLOT, infoBook);
+                        }
+                    } else {
+                        ItemStack infoBook = new ItemStack(Material.BOOK);
+                        ItemMeta infoMeta = infoBook.getItemMeta();
+                        if (infoMeta != null) {
+                            infoMeta.setDisplayName("§e⚒ 강화 예측 정보");
+                            infoMeta.setLore(List.of("§a최대 강화 단계에 도달했습니다."));
+                            infoBook.setItemMeta(infoMeta);
+                            inventory.setItem(ForgeGUI.REINFORCE_INFO_SLOT, infoBook);
+                        }
+                    }
+                }
+            } else {
+                ItemStack infoBook = new ItemStack(Material.BOOK);
+                ItemMeta infoMeta = infoBook.getItemMeta();
+                if (infoMeta != null) {
+                    infoMeta.setDisplayName("§e강화 정보");
+                    infoMeta.setLore(List.of("§7장비를 배치하면 표시됩니다"));
+                    infoBook.setItemMeta(infoMeta);
+                    inventory.setItem(ForgeGUI.REINFORCE_INFO_SLOT, infoBook);
+                }
+            }
         }
     }
 }

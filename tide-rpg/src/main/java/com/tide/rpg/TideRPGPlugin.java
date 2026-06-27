@@ -36,6 +36,8 @@ import com.tide.rpg.tideext.TidalGateListener;
 import com.tide.rpg.shop.ShopListener;
 import com.tide.rpg.zone.ZoneGuardListener;
 import com.tide.rpg.zone.ZoneRegistry;
+import com.tide.rpg.codex.CodexGUI;
+import com.tide.rpg.codex.CodexListener;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -51,10 +53,24 @@ public final class TideRPGPlugin extends JavaPlugin {
             "iron_sword_t1", "flame_sword_t1", "leather_armor_t1", "reinforce_stone", "protection_scroll",
             "soul_fragment", "nemesis_token", "tide_bell",
             "tide_resonance_blade", "bloodmoon_resonance_armor", "anchor_boots",
-            "tide_extractor", "bioluminescent_essence"
+            "tide_extractor", "bioluminescent_essence",
+            "t1_leather_helmet", "t1_leather_leggings", "t1_leather_boots", "t1_oak_bow",
+            "t2_chainmail_helmet", "t2_chainmail_chestplate", "t2_chainmail_leggings", "t2_chainmail_boots",
+            "t2_coral_trident", "t2_barbed_crossbow",
+            "t3_abyssal_helmet", "t3_abyssal_chestplate", "t3_abyssal_leggings", "t3_abyssal_boots",
+            "t3_leviathan_blade", "t3_riptide_bow",
+            "t4_voidplate_helmet", "t4_voidplate_chestplate", "t4_voidplate_leggings", "t4_voidplate_boots",
+            "t4_abyssal_reaper",
+            "t5_sovereign_helmet", "t5_sovereign_chestplate", "t5_sovereign_leggings", "t5_sovereign_boots",
+            "t5_leviathans_wrath",
+            "spawn_setter", "scroll_of_return",
+            "deepmine_gasmask", "deepmine_lantern", "deepmine_pickaxe", "void_crystal", "abyssal_core"
     };
     private static final String[] SAMPLE_RUNES = {
-            "rune_lifesteal_1", "rune_lifesteal_2", "rune_lightning_1"
+            "rune_lifesteal_1", "rune_lifesteal_2", "rune_lifesteal_3",
+            "rune_lightning_1", "rune_lightning_2", "rune_lightning_3",
+            "rune_slow_1", "rune_slow_2", "rune_slow_3",
+            "rune_berserk_1", "rune_berserk_2", "rune_berserk_3"
     };
     private static final String[] SAMPLE_ZONES = {
             "deep_mine", "boss_arena"
@@ -71,6 +87,7 @@ public final class TideRPGPlugin extends JavaPlugin {
     private ZoneRegistry zoneRegistry;
     private FishingHoleRegistry fishingHoleRegistry;
     private ItemFactory itemFactory;
+    private RuneItemFactory runeItemFactory;
     private ShopGUI shopGUI;
     private ForgeGUI forgeGUI;
     private DeepMineManager deepMineManager;
@@ -78,6 +95,7 @@ public final class TideRPGPlugin extends JavaPlugin {
     private TidalCurrentManager tidalCurrentManager;
     private BioluminescentManager bioluminescentManager;
     private GateRegistry gateRegistry;
+    private CodexGUI codexGUI;
 
     @Override
     public void onEnable() {
@@ -105,9 +123,10 @@ public final class TideRPGPlugin extends JavaPlugin {
 
         LoreRenderer loreRenderer = new LoreRenderer(itemRegistry, runeRegistry);
         this.itemFactory = new ItemFactory(itemRegistry, loreRenderer);
-        RuneItemFactory runeItemFactory = new RuneItemFactory(runeRegistry);
-        this.shopGUI = new ShopGUI(itemFactory);
+        this.runeItemFactory = new RuneItemFactory(runeRegistry);
+        this.shopGUI = new ShopGUI(this, itemFactory, runeItemFactory);
         this.forgeGUI = new ForgeGUI();
+        this.codexGUI = new CodexGUI(itemRegistry, itemFactory);
         this.gearScoreCalculator = new GearScoreCalculator(getConfig().getDouble("gs.per_reinforce_star", 5));
 
         // Exposed so TideMobs can grant Tide items (e.g. soul fragments) on elite kills
@@ -118,7 +137,7 @@ public final class TideRPGPlugin extends JavaPlugin {
         RuneEffectDispatcher dispatcher = new RuneEffectDispatcher(tideStateProvider);
         getServer().getPluginManager().registerEvents(new CombatListener(dispatcher), this);
         getServer().getPluginManager().registerEvents(new DefensiveListener(dispatcher), this);
-        getServer().getPluginManager().registerEvents(new ShopListener(economyAPI, itemFactory), this);
+        getServer().getPluginManager().registerEvents(new ShopListener(economyAPI, itemFactory, runeItemFactory), this);
         getServer().getPluginManager().registerEvents(
                 new ForgeListener(this, economyAPI, loreRenderer, runeRegistry, runeItemFactory, forgeGUI), this);
         getServer().getPluginManager().registerEvents(
@@ -127,6 +146,8 @@ public final class TideRPGPlugin extends JavaPlugin {
                 new FishingQteListener(fishingHoleRegistry, economyAPI), this);
         getServer().getPluginManager().registerEvents(new TideBellListener(), this);
         getServer().getPluginManager().registerEvents(new TideVaultListener(itemFactory), this);
+        getServer().getPluginManager().registerEvents(new com.tide.rpg.item.FunctionalItemListener(this), this);
+        getServer().getPluginManager().registerEvents(new CodexListener(codexGUI), this);
 
         // 심화 확장 기능 백서 Phase 1: Tide Resonance Set + Tidal Overdrive + Tidal Currents
         getServer().getPluginManager().registerEvents(new ResonanceListener(tideStateProvider), this);
@@ -154,12 +175,18 @@ public final class TideRPGPlugin extends JavaPlugin {
             reloadManager.register("zones", zoneRegistry);
             reloadManager.register("fishingholes", fishingHoleRegistry);
             reloadManager.register("gates", gateRegistry);
+            reloadManager.register("shop", () -> {
+                reloadConfig();
+                shopGUI.loadConfig();
+                return 1;
+            });
         }
 
         getCommand("shop").setExecutor(this);
         getCommand("forge").setExecutor(this);
         getCommand("deepmine").setExecutor(new DeepMineCommand(deepMineManager));
         getCommand("sellall").setExecutor(new SellAllCommand(new SellAllManager(itemRegistry, economyAPI)));
+        getCommand("codex").setExecutor(this);
 
         getLogger().info("TideRPG enabled. 아이템 " + itemRegistry.getAll().size()
                 + "개, 룬 " + runeRegistry.getAll().size() + "개, 구역 " + "로드 완료.");
@@ -205,7 +232,7 @@ public final class TideRPGPlugin extends JavaPlugin {
         Location entrance = new Location(bukkitWorld, entranceX, entranceY, entranceZ);
 
         this.deepMineManager = new DeepMineManager(this, world, minX, minY, minZ, maxX, maxY, maxZ,
-                entrance, resetMinutes);
+                entrance, resetMinutes, itemFactory, runeItemFactory);
         deepMineManager.start();
         getServer().getPluginManager().registerEvents(new DeepMineListener(deepMineManager, this), this);
     }
@@ -219,6 +246,7 @@ public final class TideRPGPlugin extends JavaPlugin {
         switch (command.getName().toLowerCase()) {
             case "shop" -> shopGUI.open(player);
             case "forge" -> forgeGUI.open(player);
+            case "codex" -> codexGUI.open(player);
             default -> {
                 return false;
             }

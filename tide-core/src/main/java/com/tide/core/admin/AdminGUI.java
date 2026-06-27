@@ -2,6 +2,7 @@ package com.tide.core.admin;
 
 import com.tide.core.TideCorePlugin;
 import com.tide.core.economy.EconomyManager;
+import com.tide.core.tide.BountyTempoProvider;
 import com.tide.core.tide.TideScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -10,6 +11,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 /** 54-slot layout exactly per the 3-3 spec: tide control / economy monitor / reload / player rows. */
 public final class AdminGUI {
@@ -22,6 +24,9 @@ public final class AdminGUI {
     public static final int BLOOD_MOON_BUTTON = 12;
     public static final int CURRENT_STATE_SLOT = 13;
     public static final int COUNTDOWN_SLOT = 14;
+    public static final int TIDE_TEMPO_SLOT = 15;
+    public static final int BOUNTY_DAILY_TEMPO_SLOT = 16;
+    public static final int BOUNTY_WEEKLY_TEMPO_SLOT = 17;
 
     public static final int TOTAL_CLAM_SLOT = 18;
     public static final int TOTAL_PEARL_SLOT = 19;
@@ -64,6 +69,29 @@ public final class AdminGUI {
                 "§f현재 상태: " + scheduler.getCurrentState().getDisplayName()));
         inventory.setItem(COUNTDOWN_SLOT, named(Material.CLOCK,
                 "§f다음 전환까지: §e" + formatSeconds(scheduler.getSecondsUntilNextChange())));
+
+        RegisteredServiceProvider<BountyTempoProvider> rsp = Bukkit.getServicesManager().getRegistration(BountyTempoProvider.class);
+        BountyTempoProvider bountyProvider = rsp != null ? rsp.getProvider() : null;
+
+        inventory.setItem(TIDE_TEMPO_SLOT, named(Material.CLOCK, "§b⏱ 조수 주기 설정",
+                "§7현재 주기: §f" + scheduler.getCycleDurationMinutes() + "분",
+                "§7좌클릭: §a+10분 §7| 우클릭: §c-10분",
+                "§7쉬프트+좌클릭: §a+60분 §7| 쉬프트+우클릭: §c-60분"
+        ));
+
+        long dailyMin = bountyProvider != null ? bountyProvider.getDailyResetIntervalMinutes() : 1440;
+        inventory.setItem(BOUNTY_DAILY_TEMPO_SLOT, named(Material.WRITABLE_BOOK, "§d⏱ 현상금 일일 주기 설정",
+                "§7현재 주기: §f" + dailyMin + "분",
+                "§7좌클릭: §a+10분 §7| 우클릭: §c-10분",
+                "§7쉬프트+좌클릭: §a+60분 §7| 쉬프트+우클릭: §c-60분"
+        ));
+
+        long weeklyMin = bountyProvider != null ? bountyProvider.getWeeklyResetIntervalMinutes() : 10080;
+        inventory.setItem(BOUNTY_WEEKLY_TEMPO_SLOT, named(Material.BOOK, "§d⏱ 현상금 주간 주기 설정",
+                "§7현재 주기: §f" + weeklyMin + "분",
+                "§7좌클릭: §a+10분 §7| 우클릭: §c-10분",
+                "§7쉬프트+좌클릭: §a+60분 §7| 쉬프트+우클릭: §c-60분"
+        ));
 
         inventory.setItem(TOTAL_CLAM_SLOT, named(Material.GOLD_INGOT,
                 "§6서버 총 조개(온라인): §f" + economyManager.getOnlineClamTotal()));
@@ -120,10 +148,13 @@ public final class AdminGUI {
         return head;
     }
 
-    private ItemStack named(Material material, String name) {
+    private ItemStack named(Material material, String name, String... lore) {
         ItemStack itemStack = new ItemStack(material);
         ItemMeta meta = itemStack.getItemMeta();
         meta.setDisplayName(name);
+        if (lore != null && lore.length > 0) {
+            meta.setLore(java.util.List.of(lore));
+        }
         itemStack.setItemMeta(meta);
         return itemStack;
     }

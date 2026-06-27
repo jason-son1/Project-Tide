@@ -1,0 +1,26 @@
+id: t2_coral_trident
+display_name: "§3[산호 삼지창]"
+material: TRIDENT
+custom_model_data: 1514
+gear_score: 320
+tier: 2
+
+base_stats:
+  damage: 26
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 3.5
+  defense_per_star: 0
+
+socket_count: 2
+socket_max: 3
+
+sell_price: 90
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§8— 산호초 깊은 곳에서 건져 올린 무기 —"

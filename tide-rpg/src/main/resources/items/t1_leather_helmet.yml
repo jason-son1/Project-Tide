@@ -1,0 +1,25 @@
+id: t1_leather_helmet
+display_name: "§a[파도의 가죽 모자]"
+material: LEATHER_HELMET
+custom_model_data: 1500
+gear_score: 105
+tier: 1
+
+base_stats:
+  damage: 0
+  defense: 5
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 1
+
+socket_count: 0
+socket_max: 1
+
+sell_price: 18
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"

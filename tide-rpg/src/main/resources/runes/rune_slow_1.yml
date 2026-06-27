@@ -1,0 +1,10 @@
+id: rune_slow_1
+display_name: "§9감속의 룬 I"
+type: slow
+grade: 1
+material: PRISMARINE_SHARD
+custom_model_data: 3020
+
+effect:
+  type: slow
+  value: 0.10

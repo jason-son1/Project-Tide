@@ -1,0 +1,26 @@
+id: t4_voidplate_boots
+display_name: "§8[공허판 신발]"
+material: NETHERITE_BOOTS
+custom_model_data: 1533
+gear_score: 760
+tier: 4
+
+base_stats:
+  damage: 0
+  defense: 23
+
+reinforce_bonus:
+  damage_per_star: 0
+  defense_per_star: 3.5
+
+socket_count: 2
+socket_max: 3
+
+sell_price: 305
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§8— 심연(Abyss)에서만 채굴 가능한 광물로 제작 —"

@@ -1,0 +1,16 @@
+id: rune_lifesteal_3
+display_name: "§c흡혈의 룬 III"
+type: lifesteal
+grade: 3
+material: WITHER_ROSE
+custom_model_data: 3003
+
+effect:
+  type: lifesteal
+  value: 0.24
+
+fusion:
+  input_id: rune_lifesteal_2
+  input_count: 3
+  cost_clam: 400
+  output_id: rune_lifesteal_3

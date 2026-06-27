@@ -1,0 +1,26 @@
+id: t4_abyssal_reaper
+display_name: "§8[심연의 사신검]"
+material: NETHERITE_SWORD
+custom_model_data: 1534
+gear_score: 960
+tier: 4
+
+base_stats:
+  damage: 44
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 6
+  defense_per_star: 0
+
+socket_count: 3
+socket_max: 3
+
+sell_price: 400
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§8— 심연 깊은 곳의 어둠을 베어낸 검 —"

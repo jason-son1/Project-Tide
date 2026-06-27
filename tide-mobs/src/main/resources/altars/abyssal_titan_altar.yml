@@ -1,0 +1,7 @@
+id: abyssal_titan_altar
+world: world
+block: { x: 300, y: 61, z: 300 }
+required_fragments: 12
+recommended_party_size: 5
+boss_type: ABYSSAL_TITAN
+boss_display_name: "§5§l심연의 거신"

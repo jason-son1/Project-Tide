@@ -1,0 +1,16 @@
+id: rune_berserk_2
+display_name: "§4광전사의 룬 II"
+type: berserk
+grade: 2
+material: MAGMA_CREAM
+custom_model_data: 3031
+
+effect:
+  type: berserk
+  value: 0.30
+
+fusion:
+  input_id: rune_berserk_1
+  input_count: 3
+  cost_clam: 220
+  output_id: rune_berserk_2

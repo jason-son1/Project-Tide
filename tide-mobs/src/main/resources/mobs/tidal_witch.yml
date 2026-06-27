@@ -1,0 +1,24 @@
+id: tidal_witch
+base_mob: WITCH
+display_name: "§5[조수의 마녀]"
+custom_model_data: 2006
+
+stats:
+  hp_multiplier: 1.6
+  damage_multiplier: 1.5
+
+affixes:
+  - "재생의"
+
+spawn:
+  worlds: ["world"]
+  biomes: ["SWAMP"]
+  tide_states: ["LOW_TIDE"]
+  weight: 9
+
+drops:
+  - currency: pearl
+    amount: [1, 2]
+    chance: 0.25
+  - item_id: rune_slow_1
+    chance: 0.08

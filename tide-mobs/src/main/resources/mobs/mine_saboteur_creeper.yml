@@ -1,0 +1,24 @@
+id: mine_saboteur_creeper
+base_mob: CREEPER
+display_name: "§c[광산 파괴병]"
+custom_model_data: 2008
+
+stats:
+  hp_multiplier: 1.5
+  damage_multiplier: 2.0
+
+affixes:
+  - "폭심의"
+
+spawn:
+  worlds: ["world"]
+  biomes: []
+  tide_states: ["LOW_TIDE"]
+  weight: 7
+
+drops:
+  - currency: clam
+    amount: [60, 120]
+    chance: 1.0
+  - item_id: t2_barbed_crossbow
+    chance: 0.03

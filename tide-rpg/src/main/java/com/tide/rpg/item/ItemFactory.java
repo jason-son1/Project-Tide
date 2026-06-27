@@ -46,6 +46,7 @@ public final class ItemFactory {
         if (definition.getOxygenCapacity() > 0) {
             meta.getPersistentDataContainer().set(TideKeys.OXYGEN_CAPACITY, PersistentDataType.INTEGER, definition.getOxygenCapacity());
         }
+        meta.setEnchantmentGlintOverride(true);
         itemStack.setItemMeta(meta);
 
         loreRenderer.render(itemStack);

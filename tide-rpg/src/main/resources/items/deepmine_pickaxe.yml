@@ -1,0 +1,28 @@
+id: deepmine_pickaxe
+display_name: "§6[심연 광부 곡괭이]"
+material: GOLDEN_PICKAXE
+custom_model_data: 2003
+gear_score: 280
+tier: 2
+
+base_stats:
+  damage: 6
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 0.8
+  defense_per_star: 0
+
+socket_count: 1
+socket_max: 2
+
+sell_price: 90
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§6⛏ 딥 마인 내부에서 광석 추가 드롭 +1"
+  - "§8— 심연에서 단련된 특수 광부의 곡괭이 —"
+  - "§8딥 마인 보물 상자에서 드물게 발견됩니다"

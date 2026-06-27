@@ -1,0 +1,16 @@
+id: rune_lightning_2
+display_name: "§e번개의 룬 II"
+type: lightning
+grade: 2
+material: AMETHYST_CLUSTER
+custom_model_data: 3011
+
+effect:
+  type: lightning
+  value: 0.20
+
+fusion:
+  input_id: rune_lightning_1
+  input_count: 3
+  cost_clam: 240
+  output_id: rune_lightning_2

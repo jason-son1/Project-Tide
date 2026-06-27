@@ -1,0 +1,28 @@
+id: pillager_raid_captain
+base_mob: PILLAGER
+display_name: "§9[약탈대장]"
+custom_model_data: 2012
+
+stats:
+  hp_multiplier: 1.8
+  damage_multiplier: 1.9
+
+affixes:
+  - "신속의"
+  - "보호막의"
+
+spawn:
+  worlds: ["world"]
+  biomes: ["PLAINS"]
+  tide_states: []
+  weight: 10
+
+drops:
+  - currency: clam
+    amount: [70, 130]
+    chance: 1.0
+  - currency: pearl
+    amount: [1, 2]
+    chance: 0.15
+  - item_id: t2_chainmail_boots
+    chance: 0.05

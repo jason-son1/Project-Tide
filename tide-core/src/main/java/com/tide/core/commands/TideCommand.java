@@ -35,7 +35,8 @@ public final class TideCommand implements CommandExecutor {
             case "reload" -> handleReload(sender, args);
             case "set" -> handleSet(sender, args);
             case "admin" -> handleAdmin(sender);
-            default -> sender.sendMessage("§c사용법: /tide [reload [대상]|set <상태>|admin]");
+            case "tempo" -> handleTempo(sender, args);
+            default -> sender.sendMessage("§c사용법: /tide [reload [대상]|set <상태>|admin|tempo <분>]");
         }
         return true;
     }
@@ -89,6 +90,28 @@ public final class TideCommand implements CommandExecutor {
             sender.sendMessage("§a조수 상태를 " + state.getDisplayName() + " §a로 변경했습니다.");
         } catch (IllegalArgumentException exception) {
             sender.sendMessage("§c알 수 없는 상태: " + args[1]);
+        }
+    }
+
+    private void handleTempo(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("tide.admin")) {
+            sender.sendMessage("§c권한이 없습니다.");
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§c사용법: /tide tempo <분 단위 시간>");
+            return;
+        }
+        try {
+            long minutes = Long.parseLong(args[1]);
+            if (minutes < 1) {
+                sender.sendMessage("§c시간은 최소 1분 이상이어야 합니다.");
+                return;
+            }
+            scheduler.setCycleDurationMinutes(minutes);
+            sender.sendMessage("§a조수 주기 템포를 §f" + minutes + "분§a으로 조정했습니다.");
+        } catch (NumberFormatException exception) {
+            sender.sendMessage("§c올바른 숫자를 입력해주세요.");
         }
     }
 }

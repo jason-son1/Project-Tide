@@ -1,0 +1,27 @@
+id: bloodmoon_revenant
+base_mob: ZOMBIE
+display_name: "§4[블러드문의 망령]"
+custom_model_data: 2004
+
+stats:
+  hp_multiplier: 2.4
+  damage_multiplier: 2.3
+
+affixes:
+  - "염화의"
+  - "가시의"
+
+spawn:
+  worlds: ["world"]
+  biomes: []
+  tide_states: ["BLOOD_MOON", "BLOOD_TIDE"]
+  weight: 14
+
+drops:
+  - currency: clam
+    amount: [80, 150]
+    chance: 1.0
+  - item_id: soul_fragment
+    chance: 0.08
+  - item_id: rune_berserk_1
+    chance: 0.05

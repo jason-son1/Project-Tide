@@ -8,9 +8,3 @@ custom_model_data: 3001
 effect:
   type: lifesteal
   value: 0.08
-
-fusion:
-  input_id: rune_lifesteal_1
-  input_count: 3
-  cost_clam: 100
-  output_id: rune_lifesteal_2

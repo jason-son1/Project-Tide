@@ -15,6 +15,7 @@ public final class ForgeGUI {
     public static final int TAB_SOCKET_BUTTON = 1;
     public static final int TAB_REROLL_BUTTON = 2;
     public static final int TAB_FUSION_BUTTON = 3;
+    public static final int GUIDE_BUTTON_SLOT = 8;
 
     public static final int REINFORCE_GEAR_SLOT = 13;
     public static final int REINFORCE_STONE_SLOT = 11;
@@ -75,6 +76,7 @@ public final class ForgeGUI {
         inventory.setItem(TAB_SOCKET_BUTTON, button(Material.AMETHYST_SHARD, "§d💎 룬 장착", current == ForgeTab.SOCKET));
         inventory.setItem(TAB_REROLL_BUTTON, button(Material.EXPERIENCE_BOTTLE, "§b🔄 룬 리롤", current == ForgeTab.REROLL));
         inventory.setItem(TAB_FUSION_BUTTON, button(Material.BLAZE_POWDER, "§c🔗 룬 융합", current == ForgeTab.FUSION));
+        inventory.setItem(GUIDE_BUTTON_SLOT, marker(Material.WRITTEN_BOOK, "§a📖 강화 가이드 보기", "§7클릭하면 장비 강화 가이드를 엽니다."));
     }
 
     private void renderReinforce(Inventory inventory) {

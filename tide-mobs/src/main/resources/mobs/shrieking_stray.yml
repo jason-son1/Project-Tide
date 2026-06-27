@@ -1,0 +1,24 @@
+id: shrieking_stray
+base_mob: STRAY
+display_name: "§f[울부짖는 한랭병]"
+custom_model_data: 2010
+
+stats:
+  hp_multiplier: 1.6
+  damage_multiplier: 1.7
+
+affixes:
+  - "가시의"
+
+spawn:
+  worlds: ["world"]
+  biomes: ["SNOWY_PLAINS", "SNOWY_TAIGA"]
+  tide_states: []
+  weight: 9
+
+drops:
+  - currency: clam
+    amount: [35, 75]
+    chance: 1.0
+  - item_id: rune_slow_1
+    chance: 0.06

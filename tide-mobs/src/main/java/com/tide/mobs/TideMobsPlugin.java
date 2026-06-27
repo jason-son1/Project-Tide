@@ -3,6 +3,7 @@ package com.tide.mobs;
 import java.io.File;
 import com.tide.core.economy.EconomyAPI;
 import com.tide.core.reload.ReloadManager;
+import com.tide.core.tide.BountyTempoProvider;
 import com.tide.core.tide.TideStateProvider;
 import com.tide.mobs.affix.AffixCombatListener;
 import com.tide.mobs.affix.AffixRegistry;
@@ -13,6 +14,7 @@ import com.tide.mobs.boss.AltarInteractListener;
 import com.tide.mobs.boss.AltarRegistry;
 import com.tide.mobs.boss.BossCombatListener;
 import com.tide.mobs.boss.BossFightManager;
+import com.tide.mobs.boss.AltarCommand;
 import com.tide.mobs.nemesis.CalamityManager;
 import com.tide.mobs.nemesis.ContractBoardGUI;
 import com.tide.mobs.nemesis.ContractBoardListener;
@@ -44,7 +46,12 @@ public final class TideMobsPlugin extends JavaPlugin {
             "flame", "haste", "explosive", "split", "iron", "regen", "thorns", "shield"
     };
     private static final String[] SAMPLE_ALTARS = {
-            "void_knight_altar"
+            "void_knight_altar", "coral_queen_altar", "abyssal_titan_altar"
+    };
+    private static final String[] SAMPLE_MOBS = {
+            "tide_drowned_corsair", "abyssal_husk", "spring_tide_siren", "bloodmoon_revenant",
+            "coral_guardian", "tidal_witch", "rustfang_skeleton", "mine_saboteur_creeper",
+            "abyss_phantom", "shrieking_stray", "brine_spider", "pillager_raid_captain"
     };
 
     private AffixRegistry affixRegistry;
@@ -88,11 +95,18 @@ public final class TideMobsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new EliteDropListener(itemFactory), this);
 
         BossFightManager bossFightManager = new BossFightManager(this, economyAPI);
+        bossFightManager.setItemFactory(itemFactory);
         bossFightManager.start();
         getServer().getPluginManager().registerEvents(new AltarInteractListener(altarRegistry, bossFightManager), this);
         getServer().getPluginManager().registerEvents(new BossCombatListener(bossFightManager), this);
 
         this.bountyManager = new BountyManager(affixRegistry, economyAPI);
+        if (getConfig().contains("bounty.daily-reset-interval-minutes")) {
+            bountyManager.setDailyResetIntervalMinutes(getConfig().getLong("bounty.daily-reset-interval-minutes"));
+        }
+        if (getConfig().contains("bounty.weekly-reset-interval-minutes")) {
+            bountyManager.setWeeklyResetIntervalMinutes(getConfig().getLong("bounty.weekly-reset-interval-minutes"));
+        }
         this.bountyBoardGUI = new BountyBoardGUI(bountyManager);
         getServer().getPluginManager().registerEvents(new BountyKillListener(bountyManager), this);
         getServer().getPluginManager().registerEvents(new BountyBoardListener(bountyManager, bountyBoardGUI), this);
@@ -112,6 +126,8 @@ public final class TideMobsPlugin extends JavaPlugin {
         nemesisTracker.start();
 
         Bukkit.getServicesManager().register(NemesisManager.class, nemesisManager, this, org.bukkit.plugin.ServicePriority.Normal);
+        Bukkit.getServicesManager().register(BountyManager.class, bountyManager, this, org.bukkit.plugin.ServicePriority.Normal);
+        Bukkit.getServicesManager().register(BountyTempoProvider.class, bountyManager, this, org.bukkit.plugin.ServicePriority.Normal);
 
         ReloadManager reloadManager = lookupService(ReloadManager.class);
         if (reloadManager != null) {
@@ -122,6 +138,9 @@ public final class TideMobsPlugin extends JavaPlugin {
 
         getCommand("bounty").setExecutor(this);
         getCommand("bountycontract").setExecutor(this);
+        AltarCommand altarCommand = new AltarCommand(this, altarRegistry);
+        getCommand("altar").setExecutor(altarCommand);
+        getCommand("altar").setTabCompleter(altarCommand);
 
         getLogger().info("TideMobs enabled. 접두사 " + affixRegistry.all().size() + "개 로드.");
     }
@@ -143,6 +162,14 @@ public final class TideMobsPlugin extends JavaPlugin {
             return true;
         }
         if (command.getName().equalsIgnoreCase("bounty")) {
+            if (args.length > 0) {
+                if (args[0].equalsIgnoreCase("tempo")) {
+                    return handleBountyTempo(player, args);
+                }
+                if (args[0].equalsIgnoreCase("reset")) {
+                    return handleBountyReset(player, args);
+                }
+            }
             bountyBoardGUI.open(player);
             return true;
         }
@@ -150,6 +177,52 @@ public final class TideMobsPlugin extends JavaPlugin {
             return handleContractCommand(player, args);
         }
         return false;
+    }
+
+    private boolean handleBountyTempo(Player player, String[] args) {
+        if (!player.hasPermission("tide.admin")) {
+            player.sendMessage("§c권한이 없습니다.");
+            return true;
+        }
+        if (args.length < 3) {
+            player.sendMessage("§c사용법: /bounty tempo <일일_퀘스트_주기_분> <주간_퀘스트_주기_분>");
+            return true;
+        }
+        try {
+            long daily = Long.parseLong(args[1]);
+            long weekly = Long.parseLong(args[2]);
+            if (daily < 1 || weekly < 1) {
+                player.sendMessage("§c주기는 최소 1분 이상이어야 합니다.");
+                return true;
+            }
+            bountyManager.setDailyResetIntervalMinutes(daily);
+            bountyManager.setWeeklyResetIntervalMinutes(weekly);
+            getConfig().set("bounty.daily-reset-interval-minutes", daily);
+            getConfig().set("bounty.weekly-reset-interval-minutes", weekly);
+            saveConfig();
+            player.sendMessage("§a현상금 퀘스트 재생 주기를 일일: §f" + daily + "분§a, 주간: §f" + weekly + "분§a으로 조정했습니다.");
+        } catch (NumberFormatException exception) {
+            player.sendMessage("§c올바른 숫자를 입력해주세요.");
+        }
+        return true;
+    }
+
+    private boolean handleBountyReset(Player player, String[] args) {
+        if (!player.hasPermission("tide.admin")) {
+            player.sendMessage("§c권한이 없습니다.");
+            return true;
+        }
+        Player target = player;
+        if (args.length > 1) {
+            target = Bukkit.getPlayer(args[1]);
+            if (target == null) {
+                player.sendMessage("§c플레이어를 찾을 수 없습니다: " + args[1]);
+                return true;
+            }
+        }
+        bountyManager.forceReset(target);
+        player.sendMessage("§a" + target.getName() + " 플레이어의 현상금 퀘스트를 강제 초기화 및 재생성했습니다.");
+        return true;
     }
 
     private boolean handleContractCommand(Player player, String[] args) {
@@ -186,6 +259,12 @@ public final class TideMobsPlugin extends JavaPlugin {
             File file = new File(getDataFolder(), "altars/" + id + ".yml");
             if (!file.exists()) {
                 saveResource("altars/" + id + ".yml", false);
+            }
+        }
+        for (String id : SAMPLE_MOBS) {
+            File file = new File(getDataFolder(), "mobs/" + id + ".yml");
+            if (!file.exists()) {
+                saveResource("mobs/" + id + ".yml", false);
             }
         }
     }

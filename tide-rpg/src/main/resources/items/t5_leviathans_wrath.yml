@@ -1,0 +1,28 @@
+id: t5_leviathans_wrath
+display_name: "§b§l[레비아탄의 진노]"
+material: TRIDENT
+custom_model_data: 1544
+gear_score: 1450
+tier: 5
+resonance: HIGH_TIDE
+anchor: 3
+
+base_stats:
+  damage: 62
+  defense: 0
+
+reinforce_bonus:
+  damage_per_star: 8
+  defense_per_star: 0
+
+socket_count: 3
+socket_max: 3
+
+sell_price: 1000
+
+lore_template:
+  - "§7등급: §fTier {tier}"
+  - "§6전투력(GS): §f{gs}"
+  - "§7강화: §a+{reinforce}"
+  - "§7소켓: {socket_display}"
+  - "§b— 종결 장비. 바다 그 자체의 의지가 담겼다 —"

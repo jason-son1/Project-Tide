@@ -4,6 +4,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public final class ContractBoardListener implements Listener {
 
@@ -23,13 +25,29 @@ public final class ContractBoardListener implements Listener {
             return;
         }
         int slot = event.getRawSlot();
-        var contracts = holder.getContracts();
-        if (slot < 0 || slot >= contracts.size()) {
+        if (slot == 8) {
+            com.tide.core.TideCorePlugin corePlugin = com.tide.core.TideCorePlugin.getPlugin(com.tide.core.TideCorePlugin.class);
+            new com.tide.core.guide.GuideGUI(corePlugin.getGuideRegistry()).openEntries(player, com.tide.core.guide.GuideCategory.BOUNTY);
             return;
         }
-        ContractRecord contract = contracts.get(slot);
+
+        var contracts = holder.getContracts();
+        int contractIndex = slot;
+        if (contractIndex >= 8) {
+            contractIndex--;
+        }
+        if (contractIndex < 0 || contractIndex >= contracts.size()) {
+            return;
+        }
+        ContractRecord contract = contracts.get(contractIndex);
         if (contractManager.accept(player, contract.getContractId())) {
-            event.getInventory().setItem(slot, null);
+            ItemStack filler = new ItemStack(org.bukkit.Material.GRAY_STAINED_GLASS_PANE);
+            ItemMeta fillerMeta = filler.getItemMeta();
+            if (fillerMeta != null) {
+                fillerMeta.setDisplayName(" ");
+                filler.setItemMeta(fillerMeta);
+            }
+            event.getInventory().setItem(slot, filler);
         }
     }
 }

@@ -19,3 +19,7 @@ commands:
   sellall:
     description: 인벤토리의 잡템을 한 번에 조개로 환전합니다.
     usage: /sellall [confirm|cancel]
+  codex:
+    description: 아이템 도감을 엽니다.
+    usage: /codex
+

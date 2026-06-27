@@ -1,0 +1,7 @@
+id: coral_queen_altar
+world: world
+block: { x: 200, y: 61, z: 200 }
+required_fragments: 8
+recommended_party_size: 4
+boss_type: CORAL_QUEEN
+boss_display_name: "§3§l산호 여왕"
