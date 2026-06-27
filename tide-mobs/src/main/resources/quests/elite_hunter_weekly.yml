@@ -1,0 +1,22 @@
+id: elite_hunter_weekly
+name: "§6§l주간 정예 토벌대"
+description: "이번 주는 대규모 정예 사냥 원정을 떠나라. 보람 있는 주가 될 것이다."
+icon: NETHER_STAR
+schedule: weekly
+weight: 13
+
+trigger:
+  type: KILL_ELITE
+  filter: ""
+
+target:
+  weekly_min: 15
+  weekly_max: 25
+
+reward:
+  clam:
+    weekly_min: 800
+    weekly_max: 1200
+  rep:
+    weekly_min: 50
+    weekly_max: 80

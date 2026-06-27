@@ -7,6 +7,7 @@ import com.tide.core.death.GraveInteractListener;
 import com.tide.core.death.GraveManager;
 import com.tide.core.economy.EconomyAPI;
 import com.tide.core.economy.EconomyManager;
+import com.tide.core.glow.GlowRangeManager;
 import com.tide.core.guide.GuideGUI;
 import com.tide.core.guide.GuideListener;
 import com.tide.core.guide.GuideRegistry;
@@ -33,6 +34,8 @@ public final class TideCorePlugin extends JavaPlugin {
     private com.tide.core.effect.EffectEngine effectEngine;
     private com.tide.core.resource.ResourcePackManager resourcePackManager;
     private GuideRegistry guideRegistry;
+    private com.tide.core.lobby.LobbyManager lobbyManager;
+    private GlowRangeManager glowRangeManager;
 
     private static final String[] SAMPLE_GUIDE_ENTRIES = {
             "tide_cycle", "tide_spring", "tide_bloodmoon",
@@ -57,6 +60,10 @@ public final class TideCorePlugin extends JavaPlugin {
 
         getDataFolder().mkdirs();
         new java.io.File(getDataFolder(), "data").mkdirs();
+
+        this.glowRangeManager = new GlowRangeManager();
+        this.glowRangeManager.start(this);
+        Bukkit.getServicesManager().register(GlowRangeManager.class, glowRangeManager, this, ServicePriority.Normal);
 
         this.effectEngine = new com.tide.core.effect.EffectEngine(this);
         this.effectEngine.load();
@@ -108,6 +115,9 @@ public final class TideCorePlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new GuideListener(guideGUI), this);
         reloadManager.register("guide", guideRegistry);
 
+        this.lobbyManager = new com.tide.core.lobby.LobbyManager(this);
+        getServer().getPluginManager().registerEvents(new com.tide.core.lobby.LobbyListener(lobbyManager), this);
+
         // Main Menu GUI & Listener
         com.tide.core.menu.MainMenuGUI mainMenuGUI = new com.tide.core.menu.MainMenuGUI(economyManager);
         getServer().getPluginManager().registerEvents(
@@ -115,7 +125,9 @@ public final class TideCorePlugin extends JavaPlugin {
 
         getCommand("clam").setExecutor(new com.tide.core.commands.ClamCommand(economyManager));
         getCommand("pearl").setExecutor(new com.tide.core.commands.PearlCommand(economyManager));
-        getCommand("tide").setExecutor(new com.tide.core.commands.TideCommand(tideScheduler, reloadManager, adminGUI));
+        com.tide.core.commands.TideCommand tideCmd = new com.tide.core.commands.TideCommand(tideScheduler, reloadManager, adminGUI);
+        getCommand("tide").setExecutor(tideCmd);
+        getCommand("tide").setTabCompleter(tideCmd);
         getCommand("hardcore").setExecutor(new com.tide.core.commands.HardcoreCommand(economyManager));
         getCommand("menu").setExecutor((sender, command, label, args) -> {
             if (sender instanceof org.bukkit.entity.Player player) {
@@ -129,6 +141,23 @@ public final class TideCorePlugin extends JavaPlugin {
         getCommand("guide").setExecutor((sender, command, label, args) -> {
             if (sender instanceof org.bukkit.entity.Player player) {
                 guideGUI.openCategories(player);
+                return true;
+            } else {
+                sender.sendMessage("플레이어만 사용할 수 있는 명령어입니다.");
+                return false;
+            }
+        });
+        getCommand("spawn").setExecutor((sender, command, label, args) -> {
+            if (sender instanceof org.bukkit.entity.Player player) {
+                org.bukkit.Location spawnLoc = player.getRespawnLocation();
+                if (spawnLoc == null) {
+                    spawnLoc = player.getWorld().getSpawnLocation();
+                }
+                player.teleport(spawnLoc);
+                player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+                player.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, player.getLocation(), 30, 0.5, 1.0, 0.5, 0.1);
+                player.getWorld().spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, player.getLocation(), 15, 0.5, 1.0, 0.5, 0.05);
+                player.sendMessage("§a스폰 지점으로 이동했습니다!");
                 return true;
             } else {
                 sender.sendMessage("플레이어만 사용할 수 있는 명령어입니다.");
@@ -163,6 +192,12 @@ public final class TideCorePlugin extends JavaPlugin {
         if (economyManager != null) {
             economyManager.shutdown();
         }
+        if (lobbyManager != null) {
+            lobbyManager.cancelAllTeleports();
+        }
+        if (glowRangeManager != null) {
+            glowRangeManager.stop();
+        }
         Bukkit.getServicesManager().unregisterAll(this);
         getLogger().info("TideCore disabled.");
     }
@@ -193,6 +228,10 @@ public final class TideCorePlugin extends JavaPlugin {
 
     public GuideRegistry getGuideRegistry() {
         return guideRegistry;
+    }
+
+    public com.tide.core.lobby.LobbyManager getLobbyManager() {
+        return lobbyManager;
     }
 
     private void extractBundledGuides() {

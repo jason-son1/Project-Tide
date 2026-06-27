@@ -27,6 +27,7 @@ public final class ForgeGUI {
     public static final int SOCKET_1_SLOT = 10;
     public static final int SOCKET_2_SLOT = 11;
     public static final int SOCKET_3_SLOT = 12;
+    public static final int SOCKET_INFO_SLOT = 29;
     public static final int SOCKET_ATTACH_BUTTON = 31;
 
     public static final int REROLL_GEAR_SLOT = 13;
@@ -92,6 +93,7 @@ public final class ForgeGUI {
         inventory.setItem(SOCKET_1_SLOT, marker(Material.GRAY_STAINED_GLASS_PANE, "§7소켓 1 - 룬을 놓으세요"));
         inventory.setItem(SOCKET_2_SLOT, marker(Material.GRAY_STAINED_GLASS_PANE, "§7소켓 2 - 룬을 놓으세요"));
         inventory.setItem(SOCKET_3_SLOT, marker(Material.GRAY_STAINED_GLASS_PANE, "§7소켓 3 - 룬을 놓으세요"));
+        inventory.setItem(SOCKET_INFO_SLOT, marker(Material.BOOK, "§e룬 장착 정보", "§7장비를 배치하면 표시됩니다"));
         inventory.setItem(SOCKET_ATTACH_BUTTON, button(Material.EMERALD, "§a[장착]", false));
     }
 

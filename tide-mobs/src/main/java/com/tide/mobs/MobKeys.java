@@ -15,4 +15,6 @@ public final class MobKeys {
     public static final NamespacedKey CALAMITY = new NamespacedKey("tide", "calamity");
     public static final NamespacedKey CALAMITY_ESCORT = new NamespacedKey("tide", "calamity_escort_of");
     public static final NamespacedKey STOLEN_FROM = new NamespacedKey("tide", "stolen_from");
+    /** PDC key written by CustomMobSpawnListener to identify a custom mob. */
+    public static final NamespacedKey CUSTOM_MOB_ID = new NamespacedKey("tide", "force_custom_mob_id");
 }

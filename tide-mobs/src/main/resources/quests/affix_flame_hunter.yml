@@ -1,0 +1,22 @@
+id: affix_flame_hunter
+name: "§c화염 접두사 사냥꾼"
+description: "불꽃 계열 접두사를 가진 정예 몬스터를 처치하라."
+icon: BLAZE_POWDER
+schedule: daily
+weight: 8
+
+trigger:
+  type: KILL_AFFIX
+  filter: "flame"
+
+target:
+  daily_min: 2
+  daily_max: 4
+
+reward:
+  clam:
+    daily_min: 180
+    daily_max: 320
+  rep:
+    daily_min: 10
+    daily_max: 20

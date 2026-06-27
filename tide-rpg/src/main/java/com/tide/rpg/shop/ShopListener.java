@@ -16,11 +16,13 @@ public final class ShopListener implements Listener {
     private final EconomyAPI economyAPI;
     private final ItemFactory itemFactory;
     private final RuneItemFactory runeItemFactory;
+    private final ShopGUI shopGUI;
 
-    public ShopListener(EconomyAPI economyAPI, ItemFactory itemFactory, RuneItemFactory runeItemFactory) {
+    public ShopListener(EconomyAPI economyAPI, ItemFactory itemFactory, RuneItemFactory runeItemFactory, ShopGUI shopGUI) {
         this.economyAPI = economyAPI;
         this.itemFactory = itemFactory;
         this.runeItemFactory = runeItemFactory;
+        this.shopGUI = shopGUI;
     }
 
     @EventHandler
@@ -41,8 +43,6 @@ public final class ShopListener implements Listener {
             if (holder.getTab() != ShopTab.BUY) {
                 holder.setTab(ShopTab.BUY);
                 player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1.0f, 1.0f);
-                com.tide.rpg.TideRPGPlugin plugin = com.tide.rpg.TideRPGPlugin.getPlugin(com.tide.rpg.TideRPGPlugin.class);
-                com.tide.rpg.shop.ShopGUI shopGUI = new com.tide.rpg.shop.ShopGUI(plugin, itemFactory, runeItemFactory);
                 shopGUI.render(event.getInventory(), ShopTab.BUY, player);
             }
             return;
@@ -52,10 +52,20 @@ public final class ShopListener implements Listener {
             if (holder.getTab() != ShopTab.SELL) {
                 holder.setTab(ShopTab.SELL);
                 player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1.0f, 1.0f);
-                com.tide.rpg.TideRPGPlugin plugin = com.tide.rpg.TideRPGPlugin.getPlugin(com.tide.rpg.TideRPGPlugin.class);
-                com.tide.rpg.shop.ShopGUI shopGUI = new com.tide.rpg.shop.ShopGUI(plugin, itemFactory, runeItemFactory);
                 shopGUI.render(event.getInventory(), ShopTab.SELL, player);
             }
+            return;
+        }
+
+        if (slot == 3) {
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            shopGUI.changePage(event.getInventory(), holder, player, -1);
+            return;
+        }
+
+        if (slot == 5) {
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.2f);
+            shopGUI.changePage(event.getInventory(), holder, player, 1);
             return;
         }
 
@@ -73,9 +83,6 @@ public final class ShopListener implements Listener {
         if (entry == null) {
             return;
         }
-
-        com.tide.rpg.TideRPGPlugin plugin = com.tide.rpg.TideRPGPlugin.getPlugin(com.tide.rpg.TideRPGPlugin.class);
-        com.tide.rpg.shop.ShopGUI shopGUI = new com.tide.rpg.shop.ShopGUI(plugin, itemFactory, runeItemFactory);
 
         if (holder.getTab() == ShopTab.BUY) {
             boolean charged = entry.currency() == ShopEntry.Currency.CLAM

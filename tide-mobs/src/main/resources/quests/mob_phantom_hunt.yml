@@ -1,0 +1,22 @@
+id: mob_phantom_hunt
+name: "§5심연 팬텀 퇴치"
+description: "심연에서 나온 공포, 심연의 팬텀을 퇴치하라!"
+icon: PHANTOM_MEMBRANE
+schedule: daily
+weight: 9
+
+trigger:
+  type: KILL_MOB
+  filter: "abyss_phantom"
+
+target:
+  daily_min: 3
+  daily_max: 6
+
+reward:
+  clam:
+    daily_min: 160
+    daily_max: 290
+  rep:
+    daily_min: 9
+    daily_max: 18

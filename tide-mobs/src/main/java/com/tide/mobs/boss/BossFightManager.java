@@ -2,6 +2,7 @@ package com.tide.mobs.boss;
 
 import com.tide.core.economy.EconomyAPI;
 import com.tide.mobs.MobKeys;
+import com.tide.mobs.quest.BountyManager;
 import com.tide.rpg.item.ItemFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.EntityEffect;
@@ -81,7 +82,12 @@ public final class BossFightManager {
         }
         boss.setCustomName(altar.getBossDisplayName());
         boss.setCustomNameVisible(true);
-        boss.setGlowing(true);
+        var glowRangeManager = Bukkit.getServicesManager().load(com.tide.core.glow.GlowRangeManager.class);
+        if (glowRangeManager != null) {
+            glowRangeManager.register(boss, 40.0);
+        } else {
+            boss.setGlowing(true);
+        }
         boss.getPersistentDataContainer().set(MobKeys.BOSS_MARKER, PersistentDataType.STRING, altar.getId());
 
         BossInstance instance = new BossInstance(altar.getId(), boss);
@@ -144,6 +150,10 @@ public final class BossFightManager {
             Player player = Bukkit.getPlayer(participant);
             if (player != null) {
                 player.sendTitle("§a[보스 처치]", "§f" + stripColor(instance.getEntity().getCustomName()) + "§f을(를) 쓰러뜨렸습니다!", 10, 70, 20);
+                BountyManager bm = Bukkit.getServicesManager().load(BountyManager.class);
+                if (bm != null) {
+                    bm.onBossKill(player);
+                }
                 // Drop custom items at the player's location
                 if (itemFactory != null) {
                     try {

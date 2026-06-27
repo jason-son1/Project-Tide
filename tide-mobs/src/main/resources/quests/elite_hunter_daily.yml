@@ -1,0 +1,22 @@
+id: elite_hunter_daily
+name: "§6정예 사냥꾼"
+description: "별표가 붙은 강한 정예 몬스터를 사냥하라!"
+icon: NETHER_STAR
+schedule: daily
+weight: 13
+
+trigger:
+  type: KILL_ELITE
+  filter: ""
+
+target:
+  daily_min: 3
+  daily_max: 7
+
+reward:
+  clam:
+    daily_min: 150
+    daily_max: 280
+  rep:
+    daily_min: 8
+    daily_max: 18

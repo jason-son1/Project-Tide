@@ -194,7 +194,7 @@ export default function ItemTab({ loadedConfig, onClearLoaded }) {
         <label>
           판매 가격 (조개)
           <input type="number" value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} />
-          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>`/sellall` 자동 환전 상점 등에 판매 시 지급될 기본 조개(Clam) 가격입니다.</span>
+          <span style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>상점(Shop) 판매 탭 등에 판매 시 지급될 기본 조개(Clam) 가격입니다.</span>
         </label>
 
         <fieldset style={{ marginBottom: "12px", border: "1px dashed #475569" }}>

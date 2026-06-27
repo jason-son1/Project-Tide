@@ -1,0 +1,22 @@
+id: weekly_deep_tyrant
+name: "§4§l심층의 폭군"
+description: "이번 주는 딥 마인의 강력한 정예 몬스터를 다수 처치하라. 강자만이 깊은 곳을 지배한다."
+icon: DRAGON_HEAD
+schedule: weekly
+weight: 8
+
+trigger:
+  type: KILL_ELITE
+  filter: ""
+
+target:
+  weekly_min: 20
+  weekly_max: 30
+
+reward:
+  clam:
+    weekly_min: 1100
+    weekly_max: 1600
+  rep:
+    weekly_min: 75
+    weekly_max: 110

@@ -1,0 +1,22 @@
+id: mine_weekly_depth
+name: "§4§l심층 지배자의 주간 도전"
+description: "이번 주는 딥 마인 심층부를 완전히 제패하라. 얼마나 많은 광석을 캘 수 있는가?"
+icon: DIAMOND_PICKAXE
+schedule: weekly
+weight: 14
+
+trigger:
+  type: DEEPMINE_ORE_BREAK
+  filter: ""
+
+target:
+  weekly_min: 40
+  weekly_max: 60
+
+reward:
+  clam:
+    weekly_min: 900
+    weekly_max: 1300
+  rep:
+    weekly_min: 55
+    weekly_max: 80

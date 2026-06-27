@@ -1,0 +1,22 @@
+id: mine_iron_rush
+name: "§7철의 시대"
+description: "딥 마인 심층부에서 철광석을 채굴하여 자원을 확보하라."
+icon: RAW_IRON
+schedule: daily
+weight: 14
+
+trigger:
+  type: DEEPMINE_ORE_BREAK
+  filter: "IRON"
+
+target:
+  daily_min: 10
+  daily_max: 20
+
+reward:
+  clam:
+    daily_min: 100
+    daily_max: 200
+  rep:
+    daily_min: 5
+    daily_max: 12

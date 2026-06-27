@@ -70,6 +70,7 @@ public final class FishingQteListener implements Listener {
             if (effectEngine != null) {
                 effectEngine.playEffect(player, "fishing_qte_perfect");
             }
+            triggerBountyQuestFishing(player, true);
         } else if (reactionMs <= GOOD_WINDOW_MS) {
             long clam = ThreadLocalRandom.current().nextInt(20, 51);
             economyAPI.addClam(player.getUniqueId(), clam);
@@ -77,6 +78,19 @@ public final class FishingQteListener implements Listener {
             if (effectEngine != null) {
                 effectEngine.playEffect(player, "fishing_qte_good");
             }
+            triggerBountyQuestFishing(player, false);
+        }
+    }
+
+    private void triggerBountyQuestFishing(Player player, boolean isPerfect) {
+        try {
+            Class<?> bountyManagerClass = Class.forName("com.tide.mobs.quest.BountyManager");
+            Object bountyManager = org.bukkit.Bukkit.getServicesManager().load(bountyManagerClass);
+            if (bountyManager != null) {
+                java.lang.reflect.Method onFishingMethod = bountyManagerClass.getMethod("onFishing", Player.class, boolean.class);
+                onFishingMethod.invoke(bountyManager, player, isPerfect);
+            }
+        } catch (Exception ignored) {
         }
     }
 }

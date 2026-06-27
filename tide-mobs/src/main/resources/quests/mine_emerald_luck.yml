@@ -1,0 +1,22 @@
+id: mine_emerald_luck
+name: "§2에메랄드의 행운"
+description: "행운의 여신이 함께한다! 에메랄드를 찾아라."
+icon: EMERALD
+schedule: daily
+weight: 5
+
+trigger:
+  type: DEEPMINE_ORE_BREAK
+  filter: "EMERALD"
+
+target:
+  daily_min: 2
+  daily_max: 4
+
+reward:
+  clam:
+    daily_min: 300
+    daily_max: 500
+  rep:
+    daily_min: 18
+    daily_max: 35

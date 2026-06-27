@@ -1,5 +1,6 @@
 package com.tide.rpg.codex;
 
+import com.tide.core.guide.CodexOpener;
 import com.tide.rpg.item.ItemDefinition;
 import com.tide.rpg.item.ItemFactory;
 import com.tide.rpg.item.ItemRegistry;
@@ -26,7 +27,7 @@ import java.util.List;
  *   슬롯 9–44 : 아이템 목록 (35칸 x 페이지)
  *   슬롯 45–53: 하단 필러
  */
-public final class CodexGUI {
+public final class CodexGUI implements CodexOpener {
 
     public static final String TITLE = "§8[§6아이템 도감§8]";
     public static final int PAGE_SIZE = 36; // slots 9..44
@@ -62,9 +63,10 @@ public final class CodexGUI {
         inv.setItem(3, tabButton(Material.CRYING_OBSIDIAN,   "§9딥마인", tab == CodexTab.DEEPMINE));
         inv.setItem(4, tabButton(Material.NETHER_STAR,       "§5보스",   tab == CodexTab.BOSS));
 
-        // ── 필러 ──────────────────────────────────────────────────────
+        // ── 필러 / 가이드로 돌아가기 ───────────────────────────────────
         ItemStack filler = makeFiller(Material.BLACK_STAINED_GLASS_PANE);
-        for (int i = 5; i < 9; i++) inv.setItem(i, filler);
+        for (int i = 5; i < 8; i++) inv.setItem(i, filler);
+        inv.setItem(8, backToGuideButton());
         ItemStack grayFiller = makeFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 45; i < 54; i++) inv.setItem(i, grayFiller);
 
@@ -204,6 +206,16 @@ public final class CodexGUI {
         if (meta != null) {
             meta.setDisplayName(name);
             meta.setLore(List.of("§7페이지 " + (targetPage + 1) + "로 이동"));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack backToGuideButton() {
+        ItemStack item = new ItemStack(Material.ARROW);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName("§c« 가이드로 돌아가기");
             item.setItemMeta(meta);
         }
         return item;

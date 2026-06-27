@@ -1,0 +1,22 @@
+id: mine_diamond_seeker
+name: "§b다이아몬드 탐구자"
+description: "희귀한 다이아몬드를 찾아 심층 암반을 뚫어라."
+icon: DIAMOND
+schedule: daily
+weight: 6
+
+trigger:
+  type: DEEPMINE_ORE_BREAK
+  filter: "DIAMOND"
+
+target:
+  daily_min: 3
+  daily_max: 6
+
+reward:
+  clam:
+    daily_min: 250
+    daily_max: 450
+  rep:
+    daily_min: 15
+    daily_max: 30

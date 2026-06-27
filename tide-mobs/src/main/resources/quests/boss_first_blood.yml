@@ -1,0 +1,22 @@
+id: boss_first_blood
+name: "§c첫 피의 대가"
+description: "레이드 보스를 토벌하라. 강자만이 살아남는 곳이다."
+icon: WITHER_SKELETON_SKULL
+schedule: daily
+weight: 7
+
+trigger:
+  type: BOSS_KILL
+  filter: ""
+
+target:
+  daily_min: 1
+  daily_max: 1
+
+reward:
+  clam:
+    daily_min: 350
+    daily_max: 600
+  rep:
+    daily_min: 20
+    daily_max: 35

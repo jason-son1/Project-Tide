@@ -1,149 +1,242 @@
 package com.tide.mobs.quest;
 
 import com.tide.core.economy.EconomyAPI;
-import com.tide.mobs.affix.AffixDefinition;
-import com.tide.mobs.affix.AffixRegistry;
 import org.bukkit.entity.Player;
 
-import java.time.LocalDate;
-import java.time.temporal.IsoFields;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
-
-import com.tide.core.tide.BountyTempoProvider;
 
 /**
- * In-memory daily/weekly bounty state per player — regenerated when the
- * calendar date (daily) or ISO week (weekly) rolls over. Lost on restart;
- * acceptable for a prototype, persistence can be added later if needed.
+ * In-memory daily/weekly bounty state per player.
+ *
+ * <p>Quest pools are fully driven by {@link QuestRegistry} — no hardcoded
+ * quest types remain here. A hot-reload of the registry (via /tide reload)
+ * will cause new quests to appear for players on their next refresh cycle.
  */
-public final class BountyManager implements BountyTempoProvider {
+public final class BountyManager implements com.tide.core.tide.BountyTempoProvider {
 
-    private final AffixRegistry affixRegistry;
+    private final QuestRegistry questRegistry;
     private final EconomyAPI economyAPI;
-    private final Map<UUID, List<BountyQuest>> dailyQuests = new ConcurrentHashMap<>();
-    private final Map<UUID, BountyQuest> weeklyQuests = new ConcurrentHashMap<>();
-    private final Map<UUID, Long> lastDailyResetTime = new ConcurrentHashMap<>();
+
+    private final Map<UUID, List<BountyQuest>> dailyQuests  = new ConcurrentHashMap<>();
+    private final Map<UUID, BountyQuest>       weeklyQuests = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastDailyResetTime  = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastWeeklyResetTime = new ConcurrentHashMap<>();
-    private long dailyResetIntervalMinutes = 1440;
+
+    private long dailyResetIntervalMinutes  = 1440;
     private long weeklyResetIntervalMinutes = 10080;
 
-    public BountyManager(AffixRegistry affixRegistry, EconomyAPI economyAPI) {
-        this.affixRegistry = affixRegistry;
-        this.economyAPI = economyAPI;
+    public BountyManager(QuestRegistry questRegistry, EconomyAPI economyAPI) {
+        this.questRegistry = questRegistry;
+        this.economyAPI    = economyAPI;
     }
+
+    // ── Public API ────────────────────────────────────────────────────────────
 
     public List<BountyQuest> getQuests(Player player) {
         ensureFresh(player);
         List<BountyQuest> all = new ArrayList<>(dailyQuests.getOrDefault(player.getUniqueId(), List.of()));
         BountyQuest weekly = weeklyQuests.get(player.getUniqueId());
-        if (weekly != null) {
-            all.add(weekly);
-        }
+        if (weekly != null) all.add(weekly);
         return all;
     }
 
+    public void forceReset(Player player) {
+        UUID uuid = player.getUniqueId();
+        long now  = System.currentTimeMillis();
+        dailyQuests.put(uuid, generateDaily());
+        weeklyQuests.put(uuid, generateWeekly());
+        lastDailyResetTime.put(uuid, now);
+        lastWeeklyResetTime.put(uuid, now);
+    }
+
+    public boolean claim(Player player, BountyQuest quest) {
+        if (!quest.isComplete() || quest.isClaimed()) return false;
+        quest.markClaimed();
+        economyAPI.addClam(player.getUniqueId(), quest.getRewardClam());
+        economyAPI.addRep(player.getUniqueId(), quest.getRewardRep());
+        return true;
+    }
+
+    // ── Trigger entry points (called from listeners / cross-module reflection) ─
+
+    /**
+     * Call when a player successfully reels in a fish.
+     * @param isPerfect true if the QTE was graded Perfect (≤250 ms)
+     */
+    public void onFishing(Player player, boolean isPerfect) {
+        for (BountyQuest q : getQuests(player)) {
+            if (q.isComplete()) continue;
+            if (q.matchesTrigger(QuestTrigger.FISHING_SUCCESS, null)) {
+                q.incrementProgress();
+                notifyIfComplete(player, q);
+            }
+            // FISHING_PERFECT quests also count on perfect catches
+            if (isPerfect && q.matchesTrigger(QuestTrigger.FISHING_PERFECT, null)) {
+                q.incrementProgress();
+                notifyIfComplete(player, q);
+            }
+        }
+    }
+
+    /**
+     * Call when a player breaks an ore block inside the Deep Mine.
+     * @param blockName Material.name() of the broken block
+     */
+    public void onMining(Player player, String blockName) {
+        for (BountyQuest q : getQuests(player)) {
+            if (q.isComplete()) continue;
+            if (q.matchesTrigger(QuestTrigger.DEEPMINE_ORE_BREAK, blockName)) {
+                q.incrementProgress();
+                notifyIfComplete(player, q);
+            }
+        }
+    }
+
+    /**
+     * Call when a player participates in a successful boss kill.
+     * @param bossId altar/boss id, or empty string if unknown
+     */
+    public void onBossKill(Player player, String bossId) {
+        for (BountyQuest q : getQuests(player)) {
+            if (q.isComplete()) continue;
+            if (q.matchesTrigger(QuestTrigger.BOSS_KILL, bossId)) {
+                q.incrementProgress();
+                notifyIfComplete(player, q);
+            }
+        }
+    }
+
+    /** Backwards-compat overload — boss id unknown. */
+    public void onBossKill(Player player) {
+        onBossKill(player, "");
+    }
+
+    /**
+     * Call when a player kills an elite (or affix) mob.
+     * @param isElite     true if the mob was elite
+     * @param affixesCsv  comma-separated affix ids, or null
+     * @param mobId       custom mob id (e.g. tide_drowned_corsair), or null
+     */
+    public void onEliteKill(Player player, boolean isElite, String affixesCsv, String mobId) {
+        for (BountyQuest q : getQuests(player)) {
+            if (q.isComplete()) continue;
+            // KILL_MOB — any custom mob (filter = specific mob id or empty)
+            if (q.matchesTrigger(QuestTrigger.KILL_MOB, mobId)) {
+                q.incrementProgress();
+                notifyIfComplete(player, q);
+                continue;
+            }
+            if (!isElite) continue;
+            // KILL_ELITE — any elite mob
+            if (q.matchesTrigger(QuestTrigger.KILL_ELITE, null)) {
+                q.incrementProgress();
+                notifyIfComplete(player, q);
+            }
+            // KILL_AFFIX — elite with specific affix
+            if (affixesCsv != null && q.matchesTrigger(QuestTrigger.KILL_AFFIX, affixesCsv)) {
+                q.incrementProgress();
+                notifyIfComplete(player, q);
+            }
+        }
+    }
+
+    /** Backwards-compat overload used by BountyKillListener (no mob id). */
+    public void onEliteKill(Player player, boolean isElite, String affixesCsv) {
+        onEliteKill(player, isElite, affixesCsv, null);
+    }
+
+    /**
+     * Call when a player spends clam (e.g. shop purchase).
+     * @param amount amount spent
+     */
+    public void onClamSpend(Player player, long amount) {
+        for (BountyQuest q : getQuests(player)) {
+            if (q.isComplete()) continue;
+            if (q.matchesTrigger(QuestTrigger.CLAM_SPEND, null)) {
+                // Each call = 1 progress unit; callers should call once per transaction
+                q.incrementProgress();
+                notifyIfComplete(player, q);
+            }
+        }
+    }
+
+    /**
+     * Call when a player earns reputation.
+     * @param amount reputation earned
+     */
+    public void onRepEarn(Player player, int amount) {
+        for (BountyQuest q : getQuests(player)) {
+            if (q.isComplete()) continue;
+            if (q.matchesTrigger(QuestTrigger.REP_EARN, null)) {
+                q.incrementProgress();
+                notifyIfComplete(player, q);
+            }
+        }
+    }
+
+    // ── Reset interval config ────────────────────────────────────────────────
+
+    public long getDailyResetIntervalMinutes()  { return dailyResetIntervalMinutes; }
+    public long getWeeklyResetIntervalMinutes() { return weeklyResetIntervalMinutes; }
+
+    public void setDailyResetIntervalMinutes(long minutes) {
+        this.dailyResetIntervalMinutes = Math.max(1, minutes);
+        persistConfig("bounty.daily-reset-interval-minutes", dailyResetIntervalMinutes);
+    }
+
+    public void setWeeklyResetIntervalMinutes(long minutes) {
+        this.weeklyResetIntervalMinutes = Math.max(1, minutes);
+        persistConfig("bounty.weekly-reset-interval-minutes", weeklyResetIntervalMinutes);
+    }
+
+    // ── Internal ──────────────────────────────────────────────────────────────
+
     private void ensureFresh(Player player) {
         UUID uuid = player.getUniqueId();
-        long now = System.currentTimeMillis();
+        long now  = System.currentTimeMillis();
 
         Long lastDaily = lastDailyResetTime.get(uuid);
-        if (lastDaily == null || (now - lastDaily) >= dailyResetIntervalMinutes * 60000L) {
+        if (lastDaily == null || (now - lastDaily) >= dailyResetIntervalMinutes * 60_000L) {
             dailyQuests.put(uuid, generateDaily());
             lastDailyResetTime.put(uuid, now);
         }
 
         Long lastWeekly = lastWeeklyResetTime.get(uuid);
-        if (lastWeekly == null || (now - lastWeekly) >= weeklyResetIntervalMinutes * 60000L) {
-            weeklyQuests.put(uuid, generateWeekly());
+        if (lastWeekly == null || (now - lastWeekly) >= weeklyResetIntervalMinutes * 60_000L) {
+            BountyQuest wq = generateWeekly();
+            if (wq != null) weeklyQuests.put(uuid, wq);
             lastWeeklyResetTime.put(uuid, now);
         }
     }
 
-    public long getDailyResetIntervalMinutes() {
-        return dailyResetIntervalMinutes;
-    }
-
-    public void setDailyResetIntervalMinutes(long minutes) {
-        this.dailyResetIntervalMinutes = Math.max(1, minutes);
-        try {
-            com.tide.mobs.TideMobsPlugin plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(com.tide.mobs.TideMobsPlugin.class);
-            plugin.getConfig().set("bounty.daily-reset-interval-minutes", this.dailyResetIntervalMinutes);
-            plugin.saveConfig();
-        } catch (Exception ignored) {}
-    }
-
-    public long getWeeklyResetIntervalMinutes() {
-        return weeklyResetIntervalMinutes;
-    }
-
-    public void setWeeklyResetIntervalMinutes(long minutes) {
-        this.weeklyResetIntervalMinutes = Math.max(1, minutes);
-        try {
-            com.tide.mobs.TideMobsPlugin plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(com.tide.mobs.TideMobsPlugin.class);
-            plugin.getConfig().set("bounty.weekly-reset-interval-minutes", this.weeklyResetIntervalMinutes);
-            plugin.saveConfig();
-        } catch (Exception ignored) {}
-    }
-
-    public void forceReset(Player player) {
-        UUID uuid = player.getUniqueId();
-        dailyQuests.put(uuid, generateDaily());
-        weeklyQuests.put(uuid, generateWeekly());
-        long now = System.currentTimeMillis();
-        lastDailyResetTime.put(uuid, now);
-        lastWeeklyResetTime.put(uuid, now);
-    }
-
     private List<BountyQuest> generateDaily() {
         List<BountyQuest> quests = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            quests.add(randomQuest(false));
+        for (QuestTemplate t : questRegistry.drawDaily(3)) {
+            quests.add(t.instantiateDaily());
         }
         return quests;
     }
 
     private BountyQuest generateWeekly() {
-        BountyQuest quest = randomQuest(true);
-        return quest;
+        QuestTemplate t = questRegistry.drawWeekly();
+        return t == null ? null : t.instantiateWeekly();
     }
 
-    private BountyQuest randomQuest(boolean weekly) {
-        boolean useAffix = !affixRegistry.all().isEmpty() && ThreadLocalRandom.current().nextBoolean();
-        int baseTarget = weekly ? ThreadLocalRandom.current().nextInt(15, 26) : ThreadLocalRandom.current().nextInt(3, 8);
-        long rewardClam = weekly ? 800 : ThreadLocalRandom.current().nextInt(100, 251);
-        int rewardRep = weekly ? 50 : ThreadLocalRandom.current().nextInt(5, 16);
-
-        if (useAffix) {
-            List<AffixDefinition> pool = affixRegistry.all();
-            AffixDefinition affix = pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
-            return new BountyQuest(BountyType.KILL_AFFIX, affix.getId(), baseTarget, rewardClam, rewardRep, weekly);
-        }
-        return new BountyQuest(BountyType.KILL_ELITE, null, baseTarget, rewardClam, rewardRep, weekly);
-    }
-
-    public void onEliteKill(Player player, boolean isElite, String affixesCsv) {
-        for (BountyQuest quest : getQuests(player)) {
-            if (!quest.isComplete() && quest.matches(isElite, affixesCsv)) {
-                quest.incrementProgress();
-                if (quest.isComplete()) {
-                    player.sendMessage("§a현상금 목표 달성! §f" + quest.describe() + " §7- /bounty 에서 보상을 수령하세요.");
-                }
-            }
+    private void notifyIfComplete(Player player, BountyQuest quest) {
+        if (quest.isComplete()) {
+            player.sendMessage("§a현상금 목표 달성! §f" + quest.describe() + " §7- /bounty 에서 보상을 수령하세요.");
         }
     }
 
-    public boolean claim(Player player, BountyQuest quest) {
-        if (!quest.isComplete() || quest.isClaimed()) {
-            return false;
-        }
-        quest.markClaimed();
-        economyAPI.addClam(player.getUniqueId(), quest.getRewardClam());
-        economyAPI.addRep(player.getUniqueId(), quest.getRewardRep());
-        return true;
+    private void persistConfig(String key, long value) {
+        try {
+            com.tide.mobs.TideMobsPlugin plugin = org.bukkit.plugin.java.JavaPlugin.getPlugin(com.tide.mobs.TideMobsPlugin.class);
+            plugin.getConfig().set(key, value);
+            plugin.saveConfig();
+        } catch (Exception ignored) {}
     }
 }

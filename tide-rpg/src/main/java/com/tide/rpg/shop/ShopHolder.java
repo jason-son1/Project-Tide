@@ -3,13 +3,22 @@ package com.tide.rpg.shop;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-/** Marks an open Inventory as the Tide shop so ShopListener can identify clicks reliably. */
+/**
+ * Marks an open Inventory as the Tide shop so ShopListener can identify
+ * clicks reliably. Tracks the current page per tab and a slot→entry map
+ * rebuilt on every render() call, since item position is now computed
+ * dynamically (paginated) rather than pinned to a fixed slot number.
+ */
 public final class ShopHolder implements InventoryHolder {
 
     private final List<ShopEntry> buyEntries;
     private final List<ShopEntry> sellEntries;
+    private final Map<ShopTab, Integer> pageByTab = new HashMap<>();
+    private final Map<ShopTab, Map<Integer, ShopEntry>> slotMapByTab = new HashMap<>();
     private ShopTab tab = ShopTab.BUY;
     private Inventory inventory;
 
@@ -43,8 +52,20 @@ public final class ShopHolder implements InventoryHolder {
         return sellEntries;
     }
 
+    public int getPage(ShopTab tab) {
+        return pageByTab.getOrDefault(tab, 0);
+    }
+
+    public void setPage(ShopTab tab, int page) {
+        pageByTab.put(tab, page);
+    }
+
+    public void setSlotMap(ShopTab tab, Map<Integer, ShopEntry> slotMap) {
+        slotMapByTab.put(tab, slotMap);
+    }
+
     public ShopEntry entryAt(int slot) {
-        List<ShopEntry> currentList = (tab == ShopTab.BUY) ? buyEntries : sellEntries;
-        return currentList.stream().filter(e -> e.slot() == slot).findFirst().orElse(null);
+        Map<Integer, ShopEntry> slotMap = slotMapByTab.get(tab);
+        return slotMap == null ? null : slotMap.get(slot);
     }
 }

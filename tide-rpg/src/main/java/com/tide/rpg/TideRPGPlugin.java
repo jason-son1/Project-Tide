@@ -9,9 +9,9 @@ import com.tide.rpg.combat.DefensiveListener;
 import com.tide.rpg.combat.RuneEffectDispatcher;
 import com.tide.rpg.deepmine.DeepMineCommand;
 import com.tide.rpg.deepmine.DeepMineListener;
-import com.tide.rpg.deepmine.DeepMineManager;
 import com.tide.rpg.fishing.FishingHoleRegistry;
 import com.tide.rpg.fishing.FishingQteListener;
+import com.tide.rpg.forge.ForgeConfig;
 import com.tide.rpg.forge.ForgeGUI;
 import com.tide.rpg.forge.ForgeListener;
 import com.tide.rpg.gs.GearScoreCalculator;
@@ -22,8 +22,7 @@ import com.tide.rpg.item.TideBellListener;
 import com.tide.rpg.item.TideVaultListener;
 import com.tide.rpg.rune.RuneItemFactory;
 import com.tide.rpg.rune.RuneRegistry;
-import com.tide.rpg.sell.SellAllCommand;
-import com.tide.rpg.sell.SellAllManager;
+import com.tide.rpg.shop.ShopConfig;
 import com.tide.rpg.shop.ShopGUI;
 import com.tide.rpg.tideext.BioluminescentHarvestListener;
 import com.tide.rpg.tideext.BioluminescentManager;
@@ -39,8 +38,6 @@ import com.tide.rpg.zone.ZoneRegistry;
 import com.tide.rpg.codex.CodexGUI;
 import com.tide.rpg.codex.CodexListener;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -88,9 +85,11 @@ public final class TideRPGPlugin extends JavaPlugin {
     private FishingHoleRegistry fishingHoleRegistry;
     private ItemFactory itemFactory;
     private RuneItemFactory runeItemFactory;
+    private ShopConfig shopConfig;
     private ShopGUI shopGUI;
     private ForgeGUI forgeGUI;
-    private DeepMineManager deepMineManager;
+    private ForgeConfig forgeConfig;
+    private com.tide.rpg.deepmine.DeepMineManagerRegistry deepMineRegistry;
     private GearScoreCalculator gearScoreCalculator;
     private TidalCurrentManager tidalCurrentManager;
     private BioluminescentManager bioluminescentManager;
@@ -124,22 +123,25 @@ public final class TideRPGPlugin extends JavaPlugin {
         LoreRenderer loreRenderer = new LoreRenderer(itemRegistry, runeRegistry);
         this.itemFactory = new ItemFactory(itemRegistry, loreRenderer);
         this.runeItemFactory = new RuneItemFactory(runeRegistry);
-        this.shopGUI = new ShopGUI(this, itemFactory, runeItemFactory);
+        this.shopConfig = new ShopConfig(this);
+        this.shopGUI = new ShopGUI(shopConfig, itemFactory, runeItemFactory);
         this.forgeGUI = new ForgeGUI();
+        this.forgeConfig = new ForgeConfig(this);
         this.codexGUI = new CodexGUI(itemRegistry, itemFactory);
-        this.gearScoreCalculator = new GearScoreCalculator(getConfig().getDouble("gs.per_reinforce_star", 5));
+        this.gearScoreCalculator = new GearScoreCalculator(forgeConfig.gsPerReinforceStar());
 
         // Exposed so TideMobs can grant Tide items (e.g. soul fragments) on elite kills
         // without depending on TideRPGPlugin directly.
         Bukkit.getServicesManager().register(ItemFactory.class, itemFactory, this, org.bukkit.plugin.ServicePriority.Normal);
         Bukkit.getServicesManager().register(GearScoreCalculator.class, gearScoreCalculator, this, org.bukkit.plugin.ServicePriority.Normal);
+        Bukkit.getServicesManager().register(com.tide.core.guide.CodexOpener.class, codexGUI, this, org.bukkit.plugin.ServicePriority.Normal);
 
         RuneEffectDispatcher dispatcher = new RuneEffectDispatcher(tideStateProvider);
         getServer().getPluginManager().registerEvents(new CombatListener(dispatcher), this);
         getServer().getPluginManager().registerEvents(new DefensiveListener(dispatcher), this);
-        getServer().getPluginManager().registerEvents(new ShopListener(economyAPI, itemFactory, runeItemFactory), this);
+        getServer().getPluginManager().registerEvents(new ShopListener(economyAPI, itemFactory, runeItemFactory, shopGUI), this);
         getServer().getPluginManager().registerEvents(
-                new ForgeListener(this, economyAPI, loreRenderer, runeRegistry, runeItemFactory, forgeGUI), this);
+                new ForgeListener(economyAPI, loreRenderer, runeRegistry, runeItemFactory, forgeGUI, forgeConfig, itemRegistry), this);
         getServer().getPluginManager().registerEvents(
                 new ZoneGuardListener(zoneRegistry, gearScoreCalculator), this);
         getServer().getPluginManager().registerEvents(
@@ -175,17 +177,15 @@ public final class TideRPGPlugin extends JavaPlugin {
             reloadManager.register("zones", zoneRegistry);
             reloadManager.register("fishingholes", fishingHoleRegistry);
             reloadManager.register("gates", gateRegistry);
-            reloadManager.register("shop", () -> {
-                reloadConfig();
-                shopGUI.loadConfig();
-                return 1;
-            });
+            reloadManager.register("shop", shopConfig);
+            reloadManager.register("forge", forgeConfig);
         }
 
         getCommand("shop").setExecutor(this);
         getCommand("forge").setExecutor(this);
-        getCommand("deepmine").setExecutor(new DeepMineCommand(deepMineManager));
-        getCommand("sellall").setExecutor(new SellAllCommand(new SellAllManager(itemRegistry, economyAPI)));
+        DeepMineCommand deepMineCommand = new DeepMineCommand(deepMineRegistry);
+        getCommand("deepmine").setExecutor(deepMineCommand);
+        getCommand("deepmine").setTabCompleter(deepMineCommand);
         getCommand("codex").setExecutor(this);
 
         getLogger().info("TideRPG enabled. 아이템 " + itemRegistry.getAll().size()
@@ -194,8 +194,8 @@ public final class TideRPGPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (deepMineManager != null) {
-            deepMineManager.stop();
+        if (deepMineRegistry != null) {
+            deepMineRegistry.stop();
         }
         if (tidalCurrentManager != null) {
             tidalCurrentManager.stop();
@@ -216,25 +216,9 @@ public final class TideRPGPlugin extends JavaPlugin {
     }
 
     private void setupDeepMine() {
-        String world = getConfig().getString("deepmine.world", "world");
-        int minX = getConfig().getInt("deepmine.bounds.min.x");
-        int minY = getConfig().getInt("deepmine.bounds.min.y");
-        int minZ = getConfig().getInt("deepmine.bounds.min.z");
-        int maxX = getConfig().getInt("deepmine.bounds.max.x");
-        int maxY = getConfig().getInt("deepmine.bounds.max.y");
-        int maxZ = getConfig().getInt("deepmine.bounds.max.z");
-        double entranceX = getConfig().getDouble("deepmine.entrance.x");
-        double entranceY = getConfig().getDouble("deepmine.entrance.y");
-        double entranceZ = getConfig().getDouble("deepmine.entrance.z");
-        long resetMinutes = getConfig().getLong("deepmine.reset-interval-minutes", 30);
-
-        World bukkitWorld = Bukkit.getWorld(world);
-        Location entrance = new Location(bukkitWorld, entranceX, entranceY, entranceZ);
-
-        this.deepMineManager = new DeepMineManager(this, world, minX, minY, minZ, maxX, maxY, maxZ,
-                entrance, resetMinutes, itemFactory, runeItemFactory);
-        deepMineManager.start();
-        getServer().getPluginManager().registerEvents(new DeepMineListener(deepMineManager, this), this);
+        this.deepMineRegistry = new com.tide.rpg.deepmine.DeepMineManagerRegistry(this, itemFactory, runeItemFactory);
+        deepMineRegistry.start();
+        getServer().getPluginManager().registerEvents(new DeepMineListener(deepMineRegistry, this), this);
     }
 
     @Override

@@ -1,0 +1,238 @@
+# 더 타이드 상점 설정 (구매/판매 분리, 커스텀 아이템·룬 / 바닐라 원자재 구역 분리)
+# kind: ITEM(커스텀 장비/소모품) | RUNE(룬) | VANILLA(바닐라 마인크래프트 아이템)
+# 표시 슬롯은 더 이상 고정 번호가 아니라 목록 순서 + 종류(kind)별로 자동 배치되며,
+# 한 페이지를 넘기면 자동으로 다음 페이지가 생성됩니다. 새 항목은 그냥 목록 끝에 추가하면 됩니다.
+buy:
+  - id: "t1_leather_helmet"
+    price: 80
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "iron_sword_t1"
+    price: 200
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t1_leather_leggings"
+    price: 100
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "flame_sword_t1"
+    price: 350
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t1_leather_boots"
+    price: 70
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t1_oak_bow"
+    price: 150
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "reinforce_stone"
+    price: 50
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "protection_scroll"
+    price: 5
+    currency: "PEARL"
+    kind: "ITEM"
+  - id: "scroll_of_return"
+    price: 3
+    currency: "PEARL"
+    kind: "ITEM"
+  - id: "spawn_setter"
+    price: 15
+    currency: "PEARL"
+    kind: "ITEM"
+  - id: "deepmine_gasmask"
+    price: 200
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "deepmine_lantern"
+    price: 80
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "deepmine_pickaxe"
+    price: 150
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_chainmail_helmet"
+    price: 400
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_chainmail_chestplate"
+    price: 550
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_chainmail_leggings"
+    price: 480
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_chainmail_boots"
+    price: 360
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_barbed_crossbow"
+    price: 600
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_coral_trident"
+    price: 8
+    currency: "PEARL"
+    kind: "ITEM"
+  - id: "rune_lifesteal_1"
+    price: 3
+    currency: "PEARL"
+    kind: "RUNE"
+  - id: "rune_lightning_1"
+    price: 3
+    currency: "PEARL"
+    kind: "RUNE"
+  - id: "rune_slow_1"
+    price: 2
+    currency: "PEARL"
+    kind: "RUNE"
+  - id: "rune_berserk_1"
+    price: 4
+    currency: "PEARL"
+    kind: "RUNE"
+sell:
+  - id: "iron_sword_t1"
+    price: 60
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t1_oak_bow"
+    price: 45
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t1_leather_helmet"
+    price: 25
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t1_leather_leggings"
+    price: 30
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t1_leather_boots"
+    price: 20
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "reinforce_stone"
+    price: 15
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_chainmail_helmet"
+    price: 120
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_chainmail_chestplate"
+    price: 165
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_chainmail_leggings"
+    price: 144
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_chainmail_boots"
+    price: 108
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_barbed_crossbow"
+    price: 180
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "t2_coral_trident"
+    price: 5
+    currency: "PEARL"
+    kind: "ITEM"
+  - id: "deepmine_pickaxe"
+    price: 45
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "deepmine_lantern"
+    price: 40
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "abyssal_core"
+    price: 120
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "void_crystal"
+    price: 200
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "bioluminescent_essence"
+    price: 35
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "soul_fragment"
+    price: 25
+    currency: "CLAM"
+    kind: "ITEM"
+  - id: "COAL"
+    price: 2
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "RAW_COPPER"
+    price: 2
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "RAW_IRON"
+    price: 5
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "IRON_INGOT"
+    price: 8
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "RAW_GOLD"
+    price: 10
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "GOLD_INGOT"
+    price: 15
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "REDSTONE"
+    price: 2
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "LAPIS_LAZULI"
+    price: 3
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "DIAMOND"
+    price: 50
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "EMERALD"
+    price: 40
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "QUARTZ"
+    price: 4
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "AMETHYST_SHARD"
+    price: 6
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "ENDER_PEARL"
+    price: 30
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "BLAZE_ROD"
+    price: 25
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "GHAST_TEAR"
+    price: 35
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "PHANTOM_MEMBRANE"
+    price: 15
+    currency: "CLAM"
+    kind: "VANILLA"
+  - id: "SHULKER_SHELL"
+    price: 60
+    currency: "CLAM"
+    kind: "VANILLA"

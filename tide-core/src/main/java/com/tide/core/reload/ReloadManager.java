@@ -37,4 +37,8 @@ public final class ReloadManager {
     public boolean has(String name) {
         return reloadables.containsKey(name.toLowerCase());
     }
+
+    public java.util.Set<String> getReloadableNames() {
+        return reloadables.keySet();
+    }
 }

@@ -14,11 +14,8 @@ commands:
     description: 통합 가상 대장간(강화/룬장착/룬리롤/룬융합)을 엽니다.
     usage: /forge
   deepmine:
-    description: 딥 마인 인스턴스에 입장/퇴장합니다.
-    usage: /deepmine [enter|leave]
-  sellall:
-    description: 인벤토리의 잡템을 한 번에 조개로 환전합니다.
-    usage: /sellall [confirm|cancel]
+    description: 딥 마인 인스턴스에 입장/퇴장, 위치 확인, 신규 인스턴스 자동 생성을 합니다. (tide.admin)
+    usage: /deepmine [enter|leave|info] [id] 또는 /deepmine create
   codex:
     description: 아이템 도감을 엽니다.
     usage: /codex

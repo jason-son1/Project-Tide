@@ -111,7 +111,7 @@ public final class CombatListener implements Listener {
         double maxHp = victim.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).getValue();
         double currentHp = Math.max(0.0, victim.getHealth() - event.getFinalDamage());
 
-        String name = victim.getCustomName() != null ? victim.getCustomName() : victim.getType().name().replace("_", " ");
+        String name = victim.getCustomName() != null ? victim.getCustomName() : MobNameKo.of(victim.getType());
         double ratio = currentHp / maxHp;
         int filled = (int) Math.round(ratio * 10.0);
         filled = Math.max(0, Math.min(10, filled));

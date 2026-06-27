@@ -44,6 +44,7 @@ public final class DeepMineManager {
     private static final int BLOCKS_PER_TICK = 4000;
 
     private final JavaPlugin plugin;
+    private final String id;
     private final String worldName;
     private final int minX, minY, minZ, maxX, maxY, maxZ;
     private final Location entrance;
@@ -63,10 +64,11 @@ public final class DeepMineManager {
     private BukkitTask oxygenTask;
     private BukkitTask eventTask;
 
-    public DeepMineManager(JavaPlugin plugin, String worldName, int minX, int minY, int minZ,
+    public DeepMineManager(JavaPlugin plugin, String id, String worldName, int minX, int minY, int minZ,
                             int maxX, int maxY, int maxZ, Location entrance, long resetIntervalMinutes,
                             ItemFactory itemFactory, RuneItemFactory runeItemFactory) {
         this.plugin = plugin;
+        this.id = id;
         this.worldName = worldName;
         this.minX = Math.min(minX, maxX);
         this.minY = Math.min(minY, maxY);
@@ -160,6 +162,25 @@ public final class DeepMineManager {
     public Map<org.bukkit.block.Block, org.bukkit.entity.ArmorStand> getActivePortals() {
         return activePortals;
     }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getWorldName() {
+        return worldName;
+    }
+
+    public Location getEntrance() {
+        return entrance;
+    }
+
+    public int getMinX() { return minX; }
+    public int getMinY() { return minY; }
+    public int getMinZ() { return minZ; }
+    public int getMaxX() { return maxX; }
+    public int getMaxY() { return maxY; }
+    public int getMaxZ() { return maxZ; }
 
     public void spawnPortalEntrance(Location loc) {
         World world = loc.getWorld();
@@ -833,6 +854,7 @@ public final class DeepMineManager {
                                 } else if (decorRoll < 0.26) {
                                     if (!isBeam) {
                                         setBlock(blocks, x, layerYIdx + 1, cz + 1, Material.BARREL);
+                                        chestLocations.add(new Location(world, minX + x, realLayerY + 1, minZ + (cz + 1)));
                                     }
                                 }
                             }
@@ -883,6 +905,7 @@ public final class DeepMineManager {
                                 } else if (decorRoll < 0.26) {
                                     if (!isBeam) {
                                         setBlock(blocks, cx + 1, layerYIdx + 1, z, Material.BARREL);
+                                        chestLocations.add(new Location(world, minX + (cx + 1), realLayerY + 1, minZ + z));
                                     }
                                 }
                             }
@@ -1037,12 +1060,14 @@ public final class DeepMineManager {
         // 1. Populate chests
         for (Location loc : chestLocations) {
             org.bukkit.block.Block block = loc.getBlock();
-            if (block.getType() == Material.CHEST || block.getType() == Material.BARREL) {
+            Material type = block.getType();
+            if (type == Material.CHEST || type == Material.BARREL || type == Material.ENDER_CHEST) {
+                double depthBonus = depthLootBonus(loc.getBlockY());
                 org.bukkit.block.BlockState state = block.getState();
                 if (state instanceof org.bukkit.block.Chest chest) {
-                    populateChestLoot(chest.getInventory());
+                    populateChestLoot(chest.getInventory(), depthBonus);
                 } else if (state instanceof org.bukkit.block.Container container) {
-                    populateChestLoot(container.getInventory());
+                    populateChestLoot(container.getInventory(), depthBonus);
                 }
             }
         }
@@ -1118,18 +1143,34 @@ public final class DeepMineManager {
         }
     }
 
-    private void populateChestLoot(org.bukkit.inventory.Inventory inv) {
+    /**
+     * 0.0 at the shallowest configured layer, 1.0 at the deepest — so chest
+     * loot (양과 등급 모두) scales up the further down a chest sits, instead
+     * of every chest in the dungeon rolling the same flat table regardless
+     * of how far the player had to dig to reach it.
+     */
+    private double depthLootBonus(int y) {
+        if (maxY <= minY) {
+            return 0.0;
+        }
+        double fraction = (maxY - y) / (double) (maxY - minY);
+        return Math.max(0.0, Math.min(1.0, fraction));
+    }
+
+    private void populateChestLoot(org.bukkit.inventory.Inventory inv, double depthBonus) {
         inv.clear();
-        int count = ThreadLocalRandom.current().nextInt(3, 8);
+        int count = ThreadLocalRandom.current().nextInt(3, 8) + (int) Math.round(depthBonus * 4);
+        count = Math.min(count, inv.getSize());
         for (int i = 0; i < count; i++) {
             int slot = ThreadLocalRandom.current().nextInt(inv.getSize());
-            inv.setItem(slot, rollLootItem());
+            inv.setItem(slot, rollLootItem(depthBonus));
         }
     }
 
-    private ItemStack rollLootItem() {
-        double customChance = plugin.getConfig().getDouble("deepmine.loot.custom-item-chance", 0.35);
+    private ItemStack rollLootItem(double depthBonus) {
+        double customChance = plugin.getConfig().getDouble("deepmine.loot.custom-item-chance", 0.35) + depthBonus * 0.25;
         double vanillaChance = plugin.getConfig().getDouble("deepmine.loot.vanilla-rich-chance", 0.40);
+        customChance = Math.min(customChance, 0.85);
         double roll = ThreadLocalRandom.current().nextDouble();
 
         try {
@@ -1175,11 +1216,13 @@ public final class DeepMineManager {
                     choice = minerals[ThreadLocalRandom.current().nextInt(minerals.length)];
                     amt = ThreadLocalRandom.current().nextInt(2, 7);
                 }
+                amt = Math.min(64, (int) Math.round(amt * (1.0 + depthBonus * 0.75)));
                 return new ItemStack(choice, amt);
             } else {
                 int minClam = plugin.getConfig().getInt("deepmine.loot.clam-min", 15);
                 int maxClam = plugin.getConfig().getInt("deepmine.loot.clam-max", 60);
                 int amount = ThreadLocalRandom.current().nextInt(minClam, maxClam + 1);
+                amount = Math.min(64, (int) Math.round(amount * (1.0 + depthBonus * 0.75)));
                 ItemStack clam = new ItemStack(Material.GOLD_NUGGET, amount);
                 ItemMeta meta = clam.getItemMeta();
                 if (meta != null) {

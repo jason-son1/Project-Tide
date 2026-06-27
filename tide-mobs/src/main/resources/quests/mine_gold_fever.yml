@@ -1,0 +1,22 @@
+id: mine_gold_fever
+name: "§6황금열병"
+description: "황금을 향한 탐욕! 심층부의 금광을 모두 캐내라."
+icon: RAW_GOLD
+schedule: daily
+weight: 11
+
+trigger:
+  type: DEEPMINE_ORE_BREAK
+  filter: "GOLD"
+
+target:
+  daily_min: 8
+  daily_max: 15
+
+reward:
+  clam:
+    daily_min: 150
+    daily_max: 280
+  rep:
+    daily_min: 7
+    daily_max: 15

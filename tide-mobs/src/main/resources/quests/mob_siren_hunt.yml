@@ -1,0 +1,22 @@
+id: mob_siren_hunt
+name: "§d춘조 사이렌 추방"
+description: "바다 위를 유유히 떠다니는 춘조의 사이렌을 사냥하라."
+icon: NAUTILUS_SHELL
+schedule: daily
+weight: 10
+
+trigger:
+  type: KILL_MOB
+  filter: "spring_tide_siren"
+
+target:
+  daily_min: 3
+  daily_max: 5
+
+reward:
+  clam:
+    daily_min: 170
+    daily_max: 300
+  rep:
+    daily_min: 9
+    daily_max: 17

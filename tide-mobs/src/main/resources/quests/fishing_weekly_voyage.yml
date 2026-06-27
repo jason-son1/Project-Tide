@@ -1,0 +1,22 @@
+id: fishing_weekly_voyage
+name: "§b바다 대항해"
+description: "대항해 시대! 이번 주는 바다를 누비며 최대한 많은 물고기를 낚아올려라."
+icon: FISHING_ROD
+schedule: weekly
+weight: 15
+
+trigger:
+  type: FISHING_SUCCESS
+  filter: ""
+
+target:
+  weekly_min: 30
+  weekly_max: 50
+
+reward:
+  clam:
+    weekly_min: 700
+    weekly_max: 1000
+  rep:
+    weekly_min: 40
+    weekly_max: 60

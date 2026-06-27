@@ -28,6 +28,7 @@ import com.tide.mobs.quest.BountyBoardGUI;
 import com.tide.mobs.quest.BountyBoardListener;
 import com.tide.mobs.quest.BountyKillListener;
 import com.tide.mobs.quest.BountyManager;
+import com.tide.mobs.quest.QuestRegistry;
 import com.tide.mobs.mob.MobRegistry;
 import com.tide.mobs.mob.CustomMobSpawnListener;
 import com.tide.rpg.item.ItemFactory;
@@ -53,10 +54,30 @@ public final class TideMobsPlugin extends JavaPlugin {
             "coral_guardian", "tidal_witch", "rustfang_skeleton", "mine_saboteur_creeper",
             "abyss_phantom", "shrieking_stray", "brine_spider", "pillager_raid_captain"
     };
+    private static final String[] SAMPLE_QUESTS = {
+            // 낚시 계열
+            "fishing_beginner", "fishing_journeyman", "fishing_perfect_touch",
+            "fishing_perfect_master", "fishing_weekly_voyage",
+            // 딥 마인 계열
+            "mine_iron_rush", "mine_gold_fever", "mine_diamond_seeker",
+            "mine_deepslate_grind", "mine_emerald_luck", "mine_weekly_depth",
+            // 보스 계열
+            "boss_first_blood", "boss_weekly_raid",
+            // 정예/몹 처치 계열
+            "elite_hunter_daily", "elite_hunter_weekly",
+            "affix_flame_hunter", "affix_ice_hunter", "affix_explosive_hunter",
+            "mob_corsair_hunt", "mob_phantom_hunt", "mob_siren_hunt",
+            "mob_witch_hunt", "mob_spider_hunt",
+            // 경제/생활 계열
+            "clam_spender_daily", "rep_earner_daily", "rep_earner_weekly",
+            // 주간 특별
+            "weekly_ocean_legend", "weekly_deep_tyrant"
+    };
 
     private AffixRegistry affixRegistry;
     private AltarRegistry altarRegistry;
     private MobRegistry mobRegistry;
+    private QuestRegistry questRegistry;
     private BountyManager bountyManager;
     private BountyBoardGUI bountyBoardGUI;
     private NemesisManager nemesisManager;
@@ -82,9 +103,11 @@ public final class TideMobsPlugin extends JavaPlugin {
         this.affixRegistry = new AffixRegistry(this);
         this.altarRegistry = new AltarRegistry(this);
         this.mobRegistry = new MobRegistry(this);
+        this.questRegistry = new QuestRegistry(this);
         affixRegistry.reload();
         altarRegistry.reload();
         mobRegistry.reload();
+        questRegistry.reload();
 
         EliteProcessor eliteProcessor = new EliteProcessor();
         getServer().getPluginManager().registerEvents(
@@ -100,7 +123,7 @@ public final class TideMobsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new AltarInteractListener(altarRegistry, bossFightManager), this);
         getServer().getPluginManager().registerEvents(new BossCombatListener(bossFightManager), this);
 
-        this.bountyManager = new BountyManager(affixRegistry, economyAPI);
+        this.bountyManager = new BountyManager(questRegistry, economyAPI);
         if (getConfig().contains("bounty.daily-reset-interval-minutes")) {
             bountyManager.setDailyResetIntervalMinutes(getConfig().getLong("bounty.daily-reset-interval-minutes"));
         }
@@ -134,6 +157,7 @@ public final class TideMobsPlugin extends JavaPlugin {
             reloadManager.register("affixes", affixRegistry);
             reloadManager.register("altars", altarRegistry);
             reloadManager.register("mobs", mobRegistry);
+            reloadManager.register("quests", questRegistry);
         }
 
         getCommand("bounty").setExecutor(this);
@@ -265,6 +289,12 @@ public final class TideMobsPlugin extends JavaPlugin {
             File file = new File(getDataFolder(), "mobs/" + id + ".yml");
             if (!file.exists()) {
                 saveResource("mobs/" + id + ".yml", false);
+            }
+        }
+        for (String id : SAMPLE_QUESTS) {
+            File file = new File(getDataFolder(), "quests/" + id + ".yml");
+            if (!file.exists()) {
+                saveResource("quests/" + id + ".yml", false);
             }
         }
     }

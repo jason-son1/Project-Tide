@@ -1,0 +1,22 @@
+id: weekly_ocean_legend
+name: "§b§l바다의 전설"
+description: "이번 주 낚시로 가장 많은 물고기를 낚아올려라. 전설의 낚시꾼이 될 기회!"
+icon: HEART_OF_THE_SEA
+schedule: weekly
+weight: 8
+
+trigger:
+  type: FISHING_SUCCESS
+  filter: ""
+
+target:
+  weekly_min: 50
+  weekly_max: 70
+
+reward:
+  clam:
+    weekly_min: 1200
+    weekly_max: 1800
+  rep:
+    weekly_min: 80
+    weekly_max: 120

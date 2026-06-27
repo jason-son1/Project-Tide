@@ -14,14 +14,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Three-level in-game tutorial UI: category overview -> entry list -> a
- * Written Book opened via player.openBook() for the full multi-page text,
- * matching Minecraft's native book reader rather than cramming prose into
- * item lore.
+ * Single-screen tutorial UI: category tabs (top row) switch the entry list
+ * in-place, and an "아이템 도감" tab opens the item codex (tide-rpg, via the
+ * {@link CodexOpener} service) — collapsing what used to be a 3-step
+ * category-list -> entry-list -> book flow into 2 steps (open menu -> click
+ * entry -> book), with the item codex one click away from the same screen.
  */
 public final class GuideGUI {
 
-    private static final int[] CATEGORY_SLOTS = {10, 11, 12, 13, 14, 15, 16};
+    public static final int[] CATEGORY_TAB_SLOTS = {0, 1, 2, 3, 4, 5, 6};
+    public static final int CODEX_TAB_SLOT = 7;
+    public static final int ENTRY_START_SLOT = 9;
+    public static final int ENTRY_END_SLOT = 44; // inclusive
 
     private final GuideRegistry guideRegistry;
 
@@ -29,53 +33,56 @@ public final class GuideGUI {
         this.guideRegistry = guideRegistry;
     }
 
+    /** Opens the guide on the first category. Kept for existing callers (e.g. /guide). */
     public void openCategories(Player player) {
-        CategoryHolder holder = new CategoryHolder();
-        Inventory inventory = Bukkit.createInventory(holder, 27, "📖 The Tide — 가이드");
-        holder.inventory = inventory;
-
-        ItemStack border = decorative();
-        for (int i = 0; i < 27; i++) {
-            inventory.setItem(i, border);
-        }
-
-        List<GuideCategory> categories = new ArrayList<>(List.of(GuideCategory.values()));
-        holder.categories = categories;
-        for (int i = 0; i < categories.size() && i < CATEGORY_SLOTS.length; i++) {
-            GuideCategory category = categories.get(i);
-            int count = guideRegistry.countByCategory(category);
-            inventory.setItem(CATEGORY_SLOTS[i], createItem(category.getIcon(),
-                    "§e§l" + category.getDisplayName(),
-                    "§7",
-                    "§7" + category.getDescription(),
-                    "§f",
-                    "§7항목 수: §f" + count + "개",
-                    "§e▶ 클릭하여 목록 보기"
-            ));
-        }
-
-        player.openInventory(inventory);
-        player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 1.0f, 1.0f);
+        open(player, GuideCategory.values()[0]);
     }
 
+    /** Opens the guide pre-selected on the given category. Kept for existing callers
+     *  (ShopListener/ForgeListener's in-context "가이드 보기" buttons). */
     public void openEntries(Player player, GuideCategory category) {
-        EntryHolder holder = new EntryHolder();
+        open(player, category);
+    }
+
+    private void open(Player player, GuideCategory category) {
+        GuideHolder holder = new GuideHolder();
         holder.category = category;
-        Inventory inventory = Bukkit.createInventory(holder, 54, "📖 " + category.getDisplayName());
+        Inventory inventory = Bukkit.createInventory(holder, 54, "📖 The Tide — 서버 가이드");
         holder.inventory = inventory;
 
         ItemStack border = decorative();
-        for (int i = 0; i < 9; i++) {
+        for (int i = 45; i < 54; i++) {
             inventory.setItem(i, border);
-            inventory.setItem(i + 45, border);
         }
-        inventory.setItem(45, createItem(Material.ARROW, "§c« 돌아가기", "§7클릭하여 카테고리 목록으로 돌아갑니다."));
+        inventory.setItem(8, border);
+
+        GuideCategory[] categories = GuideCategory.values();
+        for (int i = 0; i < categories.length && i < CATEGORY_TAB_SLOTS.length; i++) {
+            GuideCategory c = categories[i];
+            boolean active = c == category;
+            int count = guideRegistry.countByCategory(c);
+            inventory.setItem(CATEGORY_TAB_SLOTS[i], createItem(c.getIcon(),
+                    (active ? "§a§l✔ " : "§e§l") + c.getDisplayName(),
+                    "§7" + c.getDescription(),
+                    "§7항목 수: §f" + count + "개",
+                    active ? "§a현재 선택됨" : "§e▶ 클릭하여 보기"
+            ));
+        }
+        for (int i = categories.length; i < CATEGORY_TAB_SLOTS.length; i++) {
+            inventory.setItem(CATEGORY_TAB_SLOTS[i], border);
+        }
+        inventory.setItem(CODEX_TAB_SLOT, createItem(Material.WRITTEN_BOOK,
+                "§b§l📚 아이템 도감",
+                "§7등록된 모든 커스텀 아이템의",
+                "§7출처와 용도를 확인합니다.",
+                "§e▶ 클릭하여 열기"
+        ));
 
         List<GuideEntry> entries = guideRegistry.byCategory(category);
         holder.entries = entries;
-        int slot = 9;
+        int slot = ENTRY_START_SLOT;
         for (GuideEntry entry : entries) {
-            if (slot >= 45) {
+            if (slot > ENTRY_END_SLOT) {
                 break;
             }
             List<String> lore = new ArrayList<>();
@@ -88,6 +95,9 @@ public final class GuideGUI {
             lore.add("§e▶ 클릭하여 자세히 보기");
             inventory.setItem(slot, createItem(entry.getIcon(), "§b§l" + entry.getTitle(), lore.toArray(new String[0])));
             slot++;
+        }
+        for (int s = slot; s <= ENTRY_END_SLOT; s++) {
+            inventory.setItem(s, border);
         }
 
         player.openInventory(inventory);
@@ -128,21 +138,7 @@ public final class GuideGUI {
         return item;
     }
 
-    public static final class CategoryHolder implements InventoryHolder {
-        private Inventory inventory;
-        private List<GuideCategory> categories = List.of();
-
-        @Override
-        public Inventory getInventory() {
-            return inventory;
-        }
-
-        public List<GuideCategory> getCategories() {
-            return categories;
-        }
-    }
-
-    public static final class EntryHolder implements InventoryHolder {
+    public static final class GuideHolder implements InventoryHolder {
         private Inventory inventory;
         private GuideCategory category;
         private List<GuideEntry> entries = List.of();

@@ -32,11 +32,11 @@ public final class DeepMineListener implements Listener {
 
     public static final String DEEPMINE_DEATH_METADATA = "tide_deepmine_death";
 
-    private final DeepMineManager manager;
+    private final DeepMineManagerRegistry registry;
     private final Plugin plugin;
 
-    public DeepMineListener(DeepMineManager manager, Plugin plugin) {
-        this.manager = manager;
+    public DeepMineListener(DeepMineManagerRegistry registry, Plugin plugin) {
+        this.registry = registry;
         this.plugin = plugin;
     }
 
@@ -45,7 +45,8 @@ public final class DeepMineListener implements Listener {
         if (!(event.getEntity() instanceof Player player)) {
             return;
         }
-        if (!manager.isInside(player.getLocation())) {
+        DeepMineManager manager = registry.findContaining(player.getLocation());
+        if (manager == null) {
             return;
         }
         manager.trackLoot(player, event.getItem().getItemStack());
@@ -54,7 +55,8 @@ public final class DeepMineListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
-        if (!manager.isInside(player.getLocation())) {
+        DeepMineManager manager = registry.findContaining(player.getLocation());
+        if (manager == null) {
             return;
         }
         player.setMetadata(DEEPMINE_DEATH_METADATA, new FixedMetadataValue(plugin, true));
@@ -70,14 +72,18 @@ public final class DeepMineListener implements Listener {
         Player player = event.getPlayer();
 
         // 1. Portal entrance right-click
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && manager.getActivePortals().containsKey(block)) {
-            event.setCancelled(true);
-            manager.enter(player);
-            return;
+        for (DeepMineManager candidate : registry.getAll()) {
+            if (event.getAction() == Action.RIGHT_CLICK_BLOCK && candidate.getActivePortals().containsKey(block)) {
+                event.setCancelled(true);
+                candidate.enter(player);
+                return;
+            }
         }
 
+        DeepMineManager manager = registry.findContaining(block.getLocation());
+
         // 2. Deep Mine chest opening trap
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && manager.isInside(block.getLocation())) {
+        if (manager != null && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             if (block.getType() == Material.CHEST || block.getType() == Material.BARREL || block.getType() == Material.TRAPPED_CHEST || block.getType() == Material.ENDER_CHEST) {
                 
                 if (manager.isTrapChest(block.getLocation()) && !block.hasMetadata("tide_trap_triggered")) {
@@ -125,7 +131,7 @@ public final class DeepMineListener implements Listener {
         }
 
         // 3. Deep Mine pressure plate trap
-        if (event.getAction() == Action.PHYSICAL && manager.isInside(block.getLocation())) {
+        if (manager != null && event.getAction() == Action.PHYSICAL) {
             if (block.getType() == Material.STONE_PRESSURE_PLATE || block.getType() == Material.OAK_PRESSURE_PLATE) {
                 if (!block.hasMetadata("tide_plate_triggered")) {
                     block.setMetadata("tide_plate_triggered", new FixedMetadataValue(plugin, true));
@@ -152,14 +158,18 @@ public final class DeepMineListener implements Listener {
         Player player = event.getPlayer();
         Location blockLoc = event.getBlock().getLocation();
 
-        if (!manager.isInside(player.getLocation())) {
-            // Check for discovery in the configured deepmine world, Y <= 30
-            if (player.getWorld().getName().equals(blockLoc.getWorld().getName()) && blockLoc.getBlockY() <= 30) {
-                Material type = event.getBlock().getType();
-                if (type == Material.STONE || type == Material.DEEPSLATE || type.name().endsWith("_ORE")) {
+        DeepMineManager manager = registry.findContaining(player.getLocation());
+        if (manager == null) {
+            // Check for discovery in the configured deepmine world, Y <= 30 — opens a portal to the nearest instance.
+            Material type = event.getBlock().getType();
+            if (type == Material.STONE || type == Material.DEEPSLATE || type.name().endsWith("_ORE")) {
+                if (blockLoc.getBlockY() <= 30) {
                     double chance = plugin.getConfig().getDouble("deepmine.discovery-chance", 0.002);
                     if (ThreadLocalRandom.current().nextDouble() < chance) {
-                        manager.spawnPortalEntrance(blockLoc);
+                        DeepMineManager nearest = registry.nearest(blockLoc);
+                        if (nearest != null) {
+                            nearest.spawnPortalEntrance(blockLoc);
+                        }
                     }
                 }
             }
@@ -184,10 +194,12 @@ public final class DeepMineListener implements Listener {
             }
         }
 
+        triggerBountyQuestMining(player, blockType);
+
         // Apply deepmine_lantern check for night vision
         checkLanternNightVision(player);
 
-        double hazardChance = plugin.getConfig().getDouble("deepmine.hazard-chance", 0.05);
+        double hazardChance = plugin.getConfig().getDouble("deepmine.hazard-chance", 0.02);
         if (ThreadLocalRandom.current().nextDouble() < hazardChance) {
             triggerMiningHazard(player, blockLoc.add(0.5, 0.5, 0.5));
         }
@@ -231,7 +243,7 @@ public final class DeepMineListener implements Listener {
             return;
         }
 
-        if (ThreadLocalRandom.current().nextDouble() < 0.7) {
+        if (ThreadLocalRandom.current().nextDouble() < 0.4) {
             // Spawn a monster
             EntityType[] mobTypes = {EntityType.ZOMBIE, EntityType.CAVE_SPIDER, EntityType.WITHER_SKELETON};
             EntityType choice = mobTypes[ThreadLocalRandom.current().nextInt(mobTypes.length)];
@@ -256,7 +268,8 @@ public final class DeepMineListener implements Listener {
     public void onSpawnerSpawn(org.bukkit.event.entity.SpawnerSpawnEvent event) {
         if (event.getSpawner() != null) {
             Location loc = event.getSpawner().getLocation();
-            String mobId = manager.getSpawnerMobId(loc);
+            DeepMineManager manager = registry.findContaining(loc);
+            String mobId = manager != null ? manager.getSpawnerMobId(loc) : null;
             if (mobId != null) {
                 event.getEntity().getPersistentDataContainer().set(
                     new NamespacedKey("tide", "force_custom_mob_id"),
@@ -301,6 +314,18 @@ public final class DeepMineListener implements Listener {
                 zombie.getPersistentDataContainer().set(new NamespacedKey("tide", "force_custom_mob_id"), PersistentDataType.STRING, mobId);
                 zombie.setTarget(target);
             });
+        }
+    }
+
+    private void triggerBountyQuestMining(Player player, Material blockType) {
+        try {
+            Class<?> bountyManagerClass = Class.forName("com.tide.mobs.quest.BountyManager");
+            Object bountyManager = org.bukkit.Bukkit.getServicesManager().load(bountyManagerClass);
+            if (bountyManager != null) {
+                java.lang.reflect.Method onMiningMethod = bountyManagerClass.getMethod("onMining", Player.class, String.class);
+                onMiningMethod.invoke(bountyManager, player, blockType.name());
+            }
+        } catch (Exception ignored) {
         }
     }
 }

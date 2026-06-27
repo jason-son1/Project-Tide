@@ -1,0 +1,22 @@
+id: mob_spider_hunt
+name: "§2염수 거미 박멸"
+description: "딥 마인에 숨어있는 염수 거미들을 박멸하라."
+icon: SPIDER_EYE
+schedule: daily
+weight: 10
+
+trigger:
+  type: KILL_MOB
+  filter: "brine_spider"
+
+target:
+  daily_min: 4
+  daily_max: 8
+
+reward:
+  clam:
+    daily_min: 140
+    daily_max: 260
+  rep:
+    daily_min: 7
+    daily_max: 15

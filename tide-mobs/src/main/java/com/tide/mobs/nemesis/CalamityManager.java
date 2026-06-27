@@ -68,7 +68,12 @@ public final class CalamityManager {
         }
 
         mob.setCustomName("§4§l[재앙] §c" + mob.getCustomName());
-        mob.setGlowing(true);
+        var glowRangeManager = Bukkit.getServicesManager().load(com.tide.core.glow.GlowRangeManager.class);
+        if (glowRangeManager != null) {
+            glowRangeManager.register(mob, 24.0);
+        } else {
+            mob.setGlowing(true);
+        }
         mob.getPersistentDataContainer().set(com.tide.mobs.MobKeys.CALAMITY, PersistentDataType.BYTE, (byte) 1);
 
         spawnZealotEscort(mob);

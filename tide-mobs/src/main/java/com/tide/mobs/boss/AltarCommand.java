@@ -53,9 +53,30 @@ public final class AltarCommand implements CommandExecutor, TabCompleter {
             case "list"   -> handleList(player);
             case "info"   -> handleInfo(player, args);
             case "remove" -> handleRemove(player, args);
+            case "tp"     -> handleTeleport(player, args);
             default       -> sendHelp(player);
         }
         return true;
+    }
+
+    private void handleTeleport(Player player, String[] args) {
+        if (args.length < 2) {
+            player.sendMessage("§c사용법: /altar tp <id>");
+            return;
+        }
+        SoulAltar altar = altarRegistry.findById(args[1]);
+        if (altar == null) {
+            player.sendMessage("§c해당 ID의 제단을 찾을 수 없습니다: " + args[1]);
+            return;
+        }
+        World world = Bukkit.getWorld(altar.getWorld());
+        if (world == null) {
+            player.sendMessage("§c제단이 위치한 월드를 찾을 수 없습니다: " + altar.getWorld());
+            return;
+        }
+        Location destination = new Location(world, altar.getBlockX() + 0.5, altar.getBlockY() + 1, altar.getBlockZ() + 0.5);
+        player.teleport(destination);
+        player.sendMessage("§a[제단 이동] §f'" + altar.getId() + "' §7(" + altar.getBossDisplayName() + "§7) 제단으로 이동했습니다.");
     }
 
     private void handleCreate(Player player, String[] args) {
@@ -114,12 +135,13 @@ public final class AltarCommand implements CommandExecutor, TabCompleter {
         // Reload registry
         altarRegistry.reload();
 
-        // Build the altar structure
+        // Carve the boss arena chamber, then decorate its center with the altar.
+        BossArenaBuilder.build(loc, bossType);
         AltarBuilder.build(loc);
 
         player.sendMessage("§a[제단 생성] §f'" + id + "' 제단을 현재 위치에 생성했습니다.");
         player.sendMessage("§7보스 타입: §f" + bossType + "  §7필요 파편: §f" + fragments + "  §7권장 인원: §f" + partySize + "명");
-        player.sendMessage("§7제단 외형이 주변에 건축되었습니다.");
+        player.sendMessage("§7보스 던전 아레나가 주변에 건축되었습니다.");
     }
 
     private void handleList(Player player) {
@@ -180,6 +202,7 @@ public final class AltarCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§e/altar create <id> [boss_type] [파편수] [인원] §7— 현재 위치에 제단 생성 및 건축");
         player.sendMessage("§e/altar list                                 §7— 등록된 제단 목록");
         player.sendMessage("§e/altar info <id>                            §7— 제단 상세 정보");
+        player.sendMessage("§e/altar tp <id>                              §7— 해당 제단으로 즉시 이동");
         player.sendMessage("§e/altar remove <id>                          §7— 제단 삭제");
         player.sendMessage("§7보스 타입: §fVOID_KNIGHT §7/ §fCORAL_QUEEN §7/ §fABYSSAL_TITAN");
     }
@@ -191,7 +214,11 @@ public final class AltarCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("create", "list", "info", "remove");
+            return List.of("create", "list", "info", "tp", "remove");
+        }
+        if (args.length == 2 && (args[0].equalsIgnoreCase("info") || args[0].equalsIgnoreCase("tp")
+                || args[0].equalsIgnoreCase("remove"))) {
+            return altarRegistry.getAll().stream().map(SoulAltar::getId).toList();
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("create")) {
             return List.of("VOID_KNIGHT", "CORAL_QUEEN", "ABYSSAL_TITAN");

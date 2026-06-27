@@ -24,6 +24,9 @@ commands:
   guide:
     description: 서버 시스템 가이드(튜토리얼)를 엽니다.
     usage: /guide
+  spawn:
+    description: 스폰 지점(침대 또는 월드 스폰)으로 이동합니다.
+    usage: /spawn
 
 permissions:
   tide.admin:

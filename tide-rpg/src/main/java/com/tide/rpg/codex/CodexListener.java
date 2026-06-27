@@ -42,6 +42,17 @@ public final class CodexListener implements Listener {
             case 4 -> { if (currentTab != CodexTab.BOSS)       openTab(player, CodexTab.BOSS,       0); return; }
         }
 
+        if (slot == 8) {
+            com.tide.core.TideCorePlugin corePlugin = com.tide.core.TideCorePlugin.getInstance();
+            if (corePlugin != null && corePlugin.getGuideRegistry() != null) {
+                player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 1.0f, 1.0f);
+                new com.tide.core.guide.GuideGUI(corePlugin.getGuideRegistry()).openCategories(player);
+            } else {
+                player.sendMessage("§c가이드를 로드할 수 없습니다.");
+            }
+            return;
+        }
+
         // Page navigation
         if (slot == 45) {
             if (currentPage > 0) {

@@ -65,7 +65,12 @@ public final class TideBellListener implements Listener {
 
             EntityType type = ThreadLocalRandom.current().nextBoolean() ? EntityType.ZOMBIE : EntityType.SKELETON;
             LivingEntity spawned = (LivingEntity) player.getWorld().spawnEntity(loc, type);
-            spawned.setGlowing(true);
+            var glowRangeManager = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.glow.GlowRangeManager.class);
+            if (glowRangeManager != null) {
+                glowRangeManager.register(spawned, 20.0);
+            } else {
+                spawned.setGlowing(true);
+            }
             
             // Mark as elite
             spawned.getPersistentDataContainer().set(new NamespacedKey("tide", "elite"), PersistentDataType.BYTE, (byte) 1);

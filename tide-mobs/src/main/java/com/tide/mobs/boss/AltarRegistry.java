@@ -1,7 +1,9 @@
 package com.tide.mobs.boss;
 
 import com.tide.core.reload.Reloadable;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -44,7 +46,28 @@ public final class AltarRegistry implements Reloadable {
         altars.clear();
         altars.addAll(loaded);
         plugin.getLogger().info("보스 제단 로드 완료: 성공 " + loaded.size() + "건, 실패 " + failures + "건");
+
+        ensureArenasBuilt(loaded);
         return loaded.size();
+    }
+
+    /**
+     * Altars registered straight from a bundled YAML file never went through
+     * /altar create, so AltarBuilder/BossArenaBuilder were never called for
+     * them — visiting one showed only bare terrain. Build (or re-verify) the
+     * arena for every loaded altar so this holds regardless of how it was
+     * registered.
+     */
+    private void ensureArenasBuilt(List<SoulAltar> loaded) {
+        for (SoulAltar altar : loaded) {
+            World world = Bukkit.getWorld(altar.getWorld());
+            if (world == null) {
+                continue;
+            }
+            Location center = new Location(world, altar.getBlockX(), altar.getBlockY(), altar.getBlockZ());
+            BossArenaBuilder.build(center, altar.getBossType());
+            AltarBuilder.build(center);
+        }
     }
 
     public SoulAltar findAt(Location location) {

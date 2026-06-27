@@ -36,7 +36,14 @@ public class MainMenuGUI {
             inventory.setItem(i, border);
             inventory.setItem(i + 18, border);
         }
-        inventory.setItem(17, border);
+        // Slot 17: Go to Lobby
+        inventory.setItem(17, createItem(Material.NETHER_STAR, "§b§l✨ 로비로 이동",
+                "§7",
+                "§7안전하고 평화로운 로비 구역으로 이동합니다.",
+                "§7서바이벌 모드에서는 §e5초§7간 제자리에 대기해야 합니다.",
+                "§f",
+                "§e▶ 클릭하여 이동"
+        ));
 
         // Slot 9: Guide / Tutorial
         inventory.setItem(9, createItem(Material.KNOWLEDGE_BOOK, "§b§l📖 서버 가이드",
@@ -77,23 +84,10 @@ public class MainMenuGUI {
         // Slot 13: Player Head Stats
         inventory.setItem(13, createPlayerHead(player));
 
-        // Slot 14: Deep Mine
-        inventory.setItem(14, createItem(Material.IRON_PICKAXE, "§d§l⛏️ 딥 마인 광산",
-                "§7",
-                "§7위험천만하고 가치 있는 심층 광산으로 이동합니다.",
-                "§7광산이 리셋될 때마다 새로운 광물이 채워집니다.",
-                "§f",
-                "§e▶ 클릭하여 이동"
-        ));
-
-        // Slot 15: Sell All
-        inventory.setItem(15, createItem(Material.CHEST, "§6§l💰 소지품 전체 판매",
-                "§7",
-                "§7인벤토리 안의 판매 가능한 전리품을",
-                "§7한 번에 조개(Clam)로 환전합니다.",
-                "§f",
-                "§e▶ 클릭하여 즉시 판매"
-        ));
+        // Slots 14-15: decorative (former 딥마인 이동/소지품 전체판매 버튼 — 광산 이동은 /deepmine,
+        // 판매는 상점(Shop)으로 전면 대체되어 제거됨)
+        inventory.setItem(14, border);
+        inventory.setItem(15, border);
 
         // Slot 16: Admin Settings (visible/active if op or permission)
         if (player.isOp() || player.hasPermission("tide.admin")) {

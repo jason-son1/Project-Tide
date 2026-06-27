@@ -1,0 +1,22 @@
+id: mine_deepslate_grind
+name: "§8심층암 채굴꾼"
+description: "딥 마인의 심연에서 광물을 닥치는 대로 캐내라."
+icon: DEEPSLATE
+schedule: daily
+weight: 13
+
+trigger:
+  type: DEEPMINE_ORE_BREAK
+  filter: ""
+
+target:
+  daily_min: 8
+  daily_max: 15
+
+reward:
+  clam:
+    daily_min: 120
+    daily_max: 240
+  rep:
+    daily_min: 6
+    daily_max: 14

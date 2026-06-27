@@ -49,7 +49,12 @@ public final class ItemFactory {
         meta.setEnchantmentGlintOverride(true);
         itemStack.setItemMeta(meta);
 
+        ItemStatApplier.apply(itemStack, definition);
         loreRenderer.render(itemStack);
         return itemStack;
+    }
+
+    public java.util.Collection<String> getRegisteredIds() {
+        return itemRegistry.getAll().keySet();
     }
 }

@@ -1,0 +1,22 @@
+id: mob_corsair_hunt
+name: "§3익사자 해적 소탕"
+description: "해안가에 출몰하는 밀물의 익사자 해적들을 소탕하라!"
+icon: TRIDENT
+schedule: daily
+weight: 12
+
+trigger:
+  type: KILL_MOB
+  filter: "tide_drowned_corsair"
+
+target:
+  daily_min: 5
+  daily_max: 10
+
+reward:
+  clam:
+    daily_min: 130
+    daily_max: 250
+  rep:
+    daily_min: 7
+    daily_max: 15

@@ -154,7 +154,12 @@ public final class NemesisManager {
         mob.setCustomName("§4[네메시스] §c" + affixLabel + "§f" + record.getOriginalName()
                 + " §8<" + victim.getName() + "의 복수자>");
         mob.setCustomNameVisible(true);
-        mob.setGlowing(true);
+        var glowRangeManager = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.glow.GlowRangeManager.class);
+        if (glowRangeManager != null) {
+            glowRangeManager.register(mob, 24.0);
+        } else {
+            mob.setGlowing(true);
+        }
         mob.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, Integer.MAX_VALUE, 1));
         mob.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, Integer.MAX_VALUE, 0));
 

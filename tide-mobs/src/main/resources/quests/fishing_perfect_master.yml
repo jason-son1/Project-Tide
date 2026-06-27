@@ -1,0 +1,22 @@
+id: fishing_perfect_master
+name: "§6§l손맛의 달인"
+description: "이 바다에서 진정한 낚시 장인임을 증명하라."
+icon: FISHING_ROD
+schedule: weekly
+weight: 12
+
+trigger:
+  type: FISHING_PERFECT
+  filter: ""
+
+target:
+  weekly_min: 5
+  weekly_max: 10
+
+reward:
+  clam:
+    weekly_min: 1000
+    weekly_max: 1500
+  rep:
+    weekly_min: 70
+    weekly_max: 100

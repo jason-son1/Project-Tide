@@ -5,6 +5,9 @@ import com.tide.core.economy.EconomyAPI;
 import com.tide.core.guide.GuideGUI;
 import com.tide.core.guide.GuideCategory;
 import com.tide.rpg.TideKeys;
+import com.tide.rpg.item.ItemDefinition;
+import com.tide.rpg.item.ItemRegistry;
+import com.tide.rpg.item.ItemStatApplier;
 import com.tide.rpg.item.LoreRenderer;
 import com.tide.rpg.rune.RuneDefinition;
 import com.tide.rpg.rune.RuneItemFactory;
@@ -20,7 +23,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,21 +30,24 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public final class ForgeListener implements Listener {
 
-    private final JavaPlugin plugin;
     private final EconomyAPI economyAPI;
     private final LoreRenderer loreRenderer;
     private final RuneRegistry runeRegistry;
     private final RuneItemFactory runeItemFactory;
     private final ForgeGUI forgeGUI;
+    private final ForgeConfig forgeConfig;
+    private final ItemRegistry itemRegistry;
 
-    public ForgeListener(JavaPlugin plugin, EconomyAPI economyAPI, LoreRenderer loreRenderer,
-                          RuneRegistry runeRegistry, RuneItemFactory runeItemFactory, ForgeGUI forgeGUI) {
-        this.plugin = plugin;
+    public ForgeListener(EconomyAPI economyAPI, LoreRenderer loreRenderer,
+                          RuneRegistry runeRegistry, RuneItemFactory runeItemFactory, ForgeGUI forgeGUI,
+                          ForgeConfig forgeConfig, ItemRegistry itemRegistry) {
         this.economyAPI = economyAPI;
         this.loreRenderer = loreRenderer;
         this.runeRegistry = runeRegistry;
         this.runeItemFactory = runeItemFactory;
         this.forgeGUI = forgeGUI;
+        this.forgeConfig = forgeConfig;
+        this.itemRegistry = itemRegistry;
     }
 
     @EventHandler
@@ -207,8 +212,7 @@ public final class ForgeListener implements Listener {
         }
         int nextLevel = currentLevel + 1;
 
-        long cost = Math.round(plugin.getConfig().getDouble("forge.reinforce-cost-base", 100)
-                * Math.pow(plugin.getConfig().getDouble("forge.reinforce-cost-multiplier", 1.5), currentLevel));
+        long cost = forgeConfig.reinforceCostFor(currentLevel);
         if (!economyAPI.takeClam(player.getUniqueId(), cost)) {
             player.sendMessage("§c조개가 부족합니다. (필요: " + cost + ")");
             return;
@@ -216,7 +220,7 @@ public final class ForgeListener implements Listener {
 
         consumeOne(inventory, ForgeGUI.REINFORCE_STONE_SLOT, stone);
 
-        int successRate = plugin.getConfig().getInt("forge.reinforce-success-rate." + nextLevel, 25);
+        int successRate = forgeConfig.reinforceSuccessRate(nextLevel);
         boolean success = ThreadLocalRandom.current().nextInt(100) < successRate;
 
         if (success) {
@@ -250,8 +254,11 @@ public final class ForgeListener implements Listener {
         }
 
         gear.setItemMeta(gearMeta);
+        ItemDefinition definition = itemRegistry.get(itemIdOf(gear));
+        ItemStatApplier.apply(gear, definition);
         loreRenderer.render(gear);
         inventory.setItem(ForgeGUI.REINFORCE_GEAR_SLOT, gear);
+        updateForgeInfo(inventory, ForgeTab.REINFORCE);
     }
 
     // ---------- Socket attach ----------
@@ -294,6 +301,7 @@ public final class ForgeListener implements Listener {
         inventory.setItem(ForgeGUI.SOCKET_GEAR_SLOT, gear);
         player.sendMessage("§a룬을 장착했습니다.");
         player.playSound(player.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1f);
+        updateForgeInfo(inventory, ForgeTab.SOCKET);
     }
 
     // ---------- Reroll ----------
@@ -320,7 +328,7 @@ public final class ForgeListener implements Listener {
             return;
         }
 
-        long pearlCost = plugin.getConfig().getLong("reroll.pearl-cost", 5);
+        long pearlCost = forgeConfig.rerollPearlCost();
         if (!economyAPI.takePearl(player.getUniqueId(), pearlCost)) {
             player.sendMessage("§c진주가 부족합니다. (필요: " + pearlCost + ")");
             return;
@@ -341,6 +349,7 @@ public final class ForgeListener implements Listener {
         inventory.setItem(ForgeGUI.REROLL_GEAR_SLOT, gear);
         player.sendMessage("§b소켓 " + targetSocket + "번이 §f" + newRune.getDisplayName() + " §b로 리롤되었습니다.");
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f);
+        updateForgeInfo(inventory, ForgeTab.REROLL);
     }
 
     // ---------- Fusion ----------
@@ -376,6 +385,7 @@ public final class ForgeListener implements Listener {
         player.getInventory().addItem(result);
         player.sendMessage("§a룬 융합 성공! §f" + recipe.getDisplayName() + " §a획득.");
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+        updateForgeInfo(inventory, ForgeTab.FUSION);
     }
 
     // ---------- helpers ----------
@@ -484,53 +494,151 @@ public final class ForgeListener implements Listener {
     }
 
     private void updateForgeInfo(Inventory inventory, ForgeTab tab) {
-        if (tab == ForgeTab.REINFORCE) {
-            ItemStack gear = inventory.getItem(ForgeGUI.REINFORCE_GEAR_SLOT);
-            if (gear != null && !isMarker(gear)) {
-                ItemMeta meta = gear.getItemMeta();
-                if (meta != null) {
-                    var pdc = meta.getPersistentDataContainer();
-                    int currentLevel = pdc.getOrDefault(TideKeys.REINFORCE, PersistentDataType.INTEGER, 0);
-                    if (currentLevel < 10) {
-                        int nextLevel = currentLevel + 1;
-                        int successRate = plugin.getConfig().getInt("forge.reinforce-success-rate." + nextLevel, 25);
-                        long cost = Math.round(plugin.getConfig().getDouble("forge.reinforce-cost-base", 100)
-                                * Math.pow(plugin.getConfig().getDouble("forge.reinforce-cost-multiplier", 1.5), currentLevel));
-                        
-                        ItemStack infoBook = new ItemStack(Material.BOOK);
-                        ItemMeta infoMeta = infoBook.getItemMeta();
-                        if (infoMeta != null) {
-                            infoMeta.setDisplayName("§e⚒ 강화 예측 정보");
-                            infoMeta.setLore(List.of(
-                                "§7현재 단계: §f+" + currentLevel,
-                                "§7다음 단계: §a+" + nextLevel,
-                                "§7성공 확률: §e" + successRate + "%",
-                                "§7필요 비용: §6" + cost + " 조개"
-                            ));
-                            infoBook.setItemMeta(infoMeta);
-                            inventory.setItem(ForgeGUI.REINFORCE_INFO_SLOT, infoBook);
-                        }
-                    } else {
-                        ItemStack infoBook = new ItemStack(Material.BOOK);
-                        ItemMeta infoMeta = infoBook.getItemMeta();
-                        if (infoMeta != null) {
-                            infoMeta.setDisplayName("§e⚒ 강화 예측 정보");
-                            infoMeta.setLore(List.of("§a최대 강화 단계에 도달했습니다."));
-                            infoBook.setItemMeta(infoMeta);
-                            inventory.setItem(ForgeGUI.REINFORCE_INFO_SLOT, infoBook);
-                        }
-                    }
-                }
-            } else {
-                ItemStack infoBook = new ItemStack(Material.BOOK);
-                ItemMeta infoMeta = infoBook.getItemMeta();
-                if (infoMeta != null) {
-                    infoMeta.setDisplayName("§e강화 정보");
-                    infoMeta.setLore(List.of("§7장비를 배치하면 표시됩니다"));
-                    infoBook.setItemMeta(infoMeta);
-                    inventory.setItem(ForgeGUI.REINFORCE_INFO_SLOT, infoBook);
+        switch (tab) {
+            case REINFORCE -> updateReinforceInfo(inventory);
+            case SOCKET -> updateSocketInfo(inventory);
+            case REROLL -> updateRerollInfo(inventory);
+            case FUSION -> updateFusionInfo(inventory);
+        }
+    }
+
+    private void updateReinforceInfo(Inventory inventory) {
+        ItemStack gear = inventory.getItem(ForgeGUI.REINFORCE_GEAR_SLOT);
+        if (gear == null || isMarker(gear)) {
+            setInfo(inventory, ForgeGUI.REINFORCE_INFO_SLOT, "§e⚒ 강화 예측 정보", "§7장비를 배치하면 표시됩니다");
+            return;
+        }
+        ItemMeta meta = gear.getItemMeta();
+        var pdc = meta.getPersistentDataContainer();
+        int currentLevel = pdc.getOrDefault(TideKeys.REINFORCE, PersistentDataType.INTEGER, 0);
+        int gs = pdc.getOrDefault(TideKeys.GS, PersistentDataType.INTEGER, 0);
+        if (currentLevel >= 10) {
+            setInfo(inventory, ForgeGUI.REINFORCE_INFO_SLOT, "§e⚒ 강화 예측 정보",
+                    "§7현재 단계: §f+" + currentLevel,
+                    "§7전투력(GS): §6" + gs,
+                    "§a최대 강화 단계에 도달했습니다.");
+            return;
+        }
+        int nextLevel = currentLevel + 1;
+        int successRate = forgeConfig.reinforceSuccessRate(nextLevel);
+        long cost = forgeConfig.reinforceCostFor(currentLevel);
+        int gsGain = forgeConfig.gsPerReinforceStar();
+        setInfo(inventory, ForgeGUI.REINFORCE_INFO_SLOT, "§e⚒ 강화 예측 정보",
+                "§7현재 단계: §f+" + currentLevel + " §7(GS " + gs + ")",
+                "§7다음 단계: §a+" + nextLevel + " §7(GS " + (gs + gsGain) + ")",
+                "§7성공 확률: §e" + successRate + "%",
+                "§7필요 재료: §f강화석 1개 §7+ §6조개 " + cost + "개",
+                "§7실패 시: §c2단계 이상이면 강화 단계 1 하락",
+                "§7   §7(§d보호권§7을 함께 놓으면 하락 방지)");
+    }
+
+    private void updateSocketInfo(Inventory inventory) {
+        ItemStack gear = inventory.getItem(ForgeGUI.SOCKET_GEAR_SLOT);
+        if (gear == null || isMarker(gear)) {
+            setInfo(inventory, ForgeGUI.SOCKET_INFO_SLOT, "§e💎 룬 장착 정보", "§7장비를 배치하면 표시됩니다");
+            return;
+        }
+        ItemMeta meta = gear.getItemMeta();
+        var pdc = meta.getPersistentDataContainer();
+        int socketCount = pdc.getOrDefault(TideKeys.SOCKET_COUNT, PersistentDataType.INTEGER, 0);
+        if (socketCount <= 0) {
+            setInfo(inventory, ForgeGUI.SOCKET_INFO_SLOT, "§e💎 룬 장착 정보", "§c이 장비는 소켓이 없습니다.");
+            return;
+        }
+        List<String> lore = new ArrayList<>();
+        lore.add("§7소켓 개수: §f" + socketCount + "개");
+        int[] socketSlots = {ForgeGUI.SOCKET_1_SLOT, ForgeGUI.SOCKET_2_SLOT, ForgeGUI.SOCKET_3_SLOT};
+        for (int i = 0; i < socketCount && i < socketSlots.length; i++) {
+            String raw = pdc.get(TideKeys.socket(i + 1), PersistentDataType.STRING);
+            String currentDesc = (raw == null || raw.isBlank()) ? "§7비어 있음" : "§f" + raw;
+            ItemStack staged = inventory.getItem(socketSlots[i]);
+            String runeId = runeItemFactory.readRuneId(staged);
+            String stagedDesc = "";
+            if (runeId != null) {
+                RuneDefinition def = runeRegistry.getAll().get(runeId);
+                if (def != null) {
+                    stagedDesc = " §a▶ " + def.getDisplayName();
                 }
             }
+            lore.add("§7소켓 " + (i + 1) + ": " + currentDesc + stagedDesc);
         }
+        lore.add("§7장착할 룬을 소켓 슬롯에 놓고 [장착]을 누르세요.");
+        setInfo(inventory, ForgeGUI.SOCKET_INFO_SLOT, "§e💎 룬 장착 정보", lore.toArray(new String[0]));
+    }
+
+    private void updateRerollInfo(Inventory inventory) {
+        ItemStack gear = inventory.getItem(ForgeGUI.REROLL_GEAR_SLOT);
+        long pearlCost = forgeConfig.rerollPearlCost();
+        if (gear == null || isMarker(gear)) {
+            setInfo(inventory, ForgeGUI.REROLL_CURRENT_INFO_SLOT, "§e현재 소켓", "§7장비를 배치하면 표시됩니다");
+            setInfo(inventory, ForgeGUI.REROLL_POOL_INFO_SLOT, "§e리롤 풀", "§7비용: §d진주 " + pearlCost + "개");
+            return;
+        }
+        ItemMeta meta = gear.getItemMeta();
+        var pdc = meta.getPersistentDataContainer();
+        int socketCount = pdc.getOrDefault(TideKeys.SOCKET_COUNT, PersistentDataType.INTEGER, 0);
+        List<String> currentLore = new ArrayList<>();
+        int occupied = 0;
+        for (int i = 1; i <= socketCount; i++) {
+            String raw = pdc.get(TideKeys.socket(i), PersistentDataType.STRING);
+            if (raw != null && !raw.isBlank()) {
+                currentLore.add("§7소켓 " + i + ": §f" + raw);
+                occupied++;
+            }
+        }
+        if (occupied == 0) {
+            currentLore.add("§c리롤할 룬이 없습니다.");
+        }
+        setInfo(inventory, ForgeGUI.REROLL_CURRENT_INFO_SLOT, "§e현재 소켓", currentLore.toArray(new String[0]));
+
+        List<String> poolLore = new ArrayList<>();
+        poolLore.add("§7비용: §d진주 " + pearlCost + "개 §7(소켓 무작위 1개)");
+        poolLore.add("§7가능한 결과 (" + runeRegistry.getAll().size() + "종):");
+        runeRegistry.getAll().values().stream()
+                .sorted((a, b) -> a.getDisplayName().compareTo(b.getDisplayName()))
+                .limit(8)
+                .forEach(def -> poolLore.add("§7- §f" + def.getDisplayName()));
+        if (runeRegistry.getAll().size() > 8) {
+            poolLore.add("§7... 외 " + (runeRegistry.getAll().size() - 8) + "종");
+        }
+        setInfo(inventory, ForgeGUI.REROLL_POOL_INFO_SLOT, "§e리롤 풀", poolLore.toArray(new String[0]));
+    }
+
+    private void updateFusionInfo(Inventory inventory) {
+        String idA = runeItemFactory.readRuneId(inventory.getItem(ForgeGUI.FUSION_MATERIAL_1_SLOT));
+        String idB = runeItemFactory.readRuneId(inventory.getItem(ForgeGUI.FUSION_MATERIAL_2_SLOT));
+        String idC = runeItemFactory.readRuneId(inventory.getItem(ForgeGUI.FUSION_MATERIAL_3_SLOT));
+
+        if (idA == null && idB == null && idC == null) {
+            setInfo(inventory, ForgeGUI.FUSION_RESULT_INFO_SLOT, "§e결과 미리보기",
+                    "§7동일한 룬 " + forgeConfig.fusionSameRuneRequired() + "개를 놓으세요");
+            return;
+        }
+        if (idA == null || !idA.equals(idB) || !idA.equals(idC)) {
+            setInfo(inventory, ForgeGUI.FUSION_RESULT_INFO_SLOT, "§e결과 미리보기",
+                    "§c동일한 룬 " + forgeConfig.fusionSameRuneRequired() + "개를 모두 놓아야 합니다");
+            return;
+        }
+        RuneDefinition recipe = runeRegistry.findFusionRecipeFor(idA).orElse(null);
+        if (recipe == null) {
+            setInfo(inventory, ForgeGUI.FUSION_RESULT_INFO_SLOT, "§e결과 미리보기",
+                    "§c이 룬은 더 이상 융합할 수 없습니다 (최고 등급).");
+            return;
+        }
+        setInfo(inventory, ForgeGUI.FUSION_RESULT_INFO_SLOT, "§e결과 미리보기",
+                "§7결과: §f" + recipe.getDisplayName(),
+                "§7필요 비용: §6" + recipe.getFusionCostClam() + " 조개",
+                "§a[융합]을 눌러 합성하세요.");
+    }
+
+    private void setInfo(Inventory inventory, int slot, String name, String... lore) {
+        ItemStack infoBook = new ItemStack(Material.BOOK);
+        ItemMeta infoMeta = infoBook.getItemMeta();
+        if (infoMeta != null) {
+            infoMeta.setDisplayName(name);
+            infoMeta.setLore(List.of(lore));
+            infoBook.setItemMeta(infoMeta);
+        }
+        inventory.setItem(slot, infoBook);
     }
 }

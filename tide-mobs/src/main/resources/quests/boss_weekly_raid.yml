@@ -1,0 +1,22 @@
+id: boss_weekly_raid
+name: "§4§l주간 레이드 원정대"
+description: "이번 주에 레이드 보스를 여러 번 토벌하라. 영웅의 이름을 새겨라."
+icon: WITHER_SKELETON_SKULL
+schedule: weekly
+weight: 10
+
+trigger:
+  type: BOSS_KILL
+  filter: ""
+
+target:
+  weekly_min: 3
+  weekly_max: 5
+
+reward:
+  clam:
+    weekly_min: 1500
+    weekly_max: 2500
+  rep:
+    weekly_min: 100
+    weekly_max: 150

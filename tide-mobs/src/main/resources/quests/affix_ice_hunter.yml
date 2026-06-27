@@ -1,0 +1,22 @@
+id: affix_ice_hunter
+name: "§b빙결 접두사 사냥꾼"
+description: "얼음처럼 냉혹한 빙결 정예 몬스터를 처치하라."
+icon: BLUE_ICE
+schedule: daily
+weight: 8
+
+trigger:
+  type: KILL_AFFIX
+  filter: "haste"
+
+target:
+  daily_min: 2
+  daily_max: 4
+
+reward:
+  clam:
+    daily_min: 180
+    daily_max: 320
+  rep:
+    daily_min: 10
+    daily_max: 20

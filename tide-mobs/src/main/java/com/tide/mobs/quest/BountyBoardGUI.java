@@ -8,6 +8,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class BountyBoardGUI {
@@ -25,10 +26,15 @@ public final class BountyBoardGUI {
 
         List<BountyQuest> quests = bountyManager.getQuests(player);
         holder.quests = quests;
-        for (int i = 0; i < quests.size() && i < 27; i++) {
-            inventory.setItem(i * 2 + 1 <= 26 ? i * 2 + 1 : i, renderQuest(quests.get(i)));
+
+        // Place quest items in odd slots: 1, 3, 5, 7, 9, 11, …
+        for (int i = 0; i < quests.size() && i < 13; i++) {
+            int slot = i * 2 + 1;
+            if (slot >= inventory.getSize()) slot = i;
+            inventory.setItem(slot, renderQuest(quests.get(i)));
         }
 
+        // Guide book in slot 8
         ItemStack guideBook = new ItemStack(Material.WRITTEN_BOOK);
         ItemMeta guideMeta = guideBook.getItemMeta();
         if (guideMeta != null) {
@@ -38,6 +44,7 @@ public final class BountyBoardGUI {
         }
         inventory.setItem(8, guideBook);
 
+        // Fill remaining slots with filler
         ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta fillerMeta = filler.getItemMeta();
         if (fillerMeta != null) {
@@ -45,40 +52,49 @@ public final class BountyBoardGUI {
             filler.setItemMeta(fillerMeta);
         }
         for (int i = 0; i < inventory.getSize(); i++) {
-            if (inventory.getItem(i) == null) {
-                inventory.setItem(i, filler);
-            }
+            if (inventory.getItem(i) == null) inventory.setItem(i, filler);
         }
 
         player.openInventory(inventory);
     }
 
     public ItemStack renderQuest(BountyQuest quest) {
-        Material material = quest.isClaimed() ? Material.GRAY_DYE
-                : quest.isComplete() ? Material.EMERALD : Material.PAPER;
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
+        Material mat = quest.isClaimed()  ? Material.GRAY_DYE
+                     : quest.isComplete() ? Material.EMERALD
+                     : quest.getIcon();
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
+
         meta.setDisplayName(quest.describe());
-        meta.setLore(List.of(
-                "§7진행도: §f" + quest.getProgress() + " / " + quest.getTargetCount(),
-                "§7보상: §6조개 " + quest.getRewardClam() + " §7+ §a평판 " + quest.getRewardRep(),
-                quest.isClaimed() ? "§7(수령 완료)" : quest.isComplete() ? "§e클릭하여 수령" : "§7진행 중"
-        ));
-        itemStack.setItemMeta(meta);
-        return itemStack;
+
+        List<String> lore = new ArrayList<>();
+        if (!quest.getDescription().isBlank()) {
+            lore.add("§7" + quest.getDescription());
+            lore.add("");
+        }
+        lore.add("§7진행도: §f" + quest.getProgress() + " / " + quest.getTargetCount());
+        lore.add("§7보상: §6조개 " + quest.getRewardClam() + " §7+ §a평판 " + quest.getRewardRep());
+        if (quest.isClaimed()) {
+            lore.add("§7(수령 완료)");
+        } else if (quest.isComplete()) {
+            lore.add("§e▶ 클릭하여 보상 수령");
+        } else {
+            lore.add("§7진행 중...");
+        }
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        return item;
     }
+
+    // ── Holder ────────────────────────────────────────────────────────────────
 
     public static final class Holder implements InventoryHolder {
         private Inventory inventory;
         private List<BountyQuest> quests = List.of();
 
         @Override
-        public Inventory getInventory() {
-            return inventory;
-        }
-
-        public List<BountyQuest> getQuests() {
-            return quests;
-        }
+        public Inventory getInventory() { return inventory; }
+        public List<BountyQuest> getQuests() { return quests; }
     }
 }

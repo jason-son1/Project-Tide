@@ -245,7 +245,7 @@ export default function GuideTab() {
             <h3 style={{ color: "#cbd5e1" }}>1. 조수 상태 변화</h3>
             <ul style={{ fontSize: "13px", lineHeight: "1.6", color: "#cbd5e1" }}>
               <li><strong>LOW_TIDE (썰물)</strong>: 평화로운 탐험 단계. 몹 스폰 속도가 낮고 낚시 성공률이 낮습니다.</li>
-              <li><strong>HIGH_TIDE / SPRING_TIDE (밀물 / 사리)</strong>: 몹 스탯이 상승하며 사냥 및 상점 자동 환전(`/sellall`) 가격이 보너스를 받습니다.</li>
+              <li><strong>HIGH_TIDE / SPRING_TIDE (밀물 / 사리)</strong>: 몹 스탯이 상승하며 사냥 및 상점 판매 가격이 보너스를 받습니다.</li>
               <li><strong>BLOOD_MOON / BLOOD_TIDE (붉은 달)</strong>: 최악의 재앙 상태. 야생에 거대한 엘리트 정예군단이 대량 출몰하며, 숨겨진 <strong>조수 금고(Tide Vault)</strong>가 활성화되어 룬 보물상자를 털 기회가 생깁니다.</li>
             </ul>
 

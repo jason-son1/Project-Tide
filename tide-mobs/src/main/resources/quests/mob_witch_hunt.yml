@@ -1,0 +1,22 @@
+id: mob_witch_hunt
+name: "§a조류 마녀 사냥"
+description: "조류 마녀가 마법으로 주민들을 괴롭히고 있다. 퇴치하라!"
+icon: BREWING_STAND
+schedule: daily
+weight: 10
+
+trigger:
+  type: KILL_MOB
+  filter: "tidal_witch"
+
+target:
+  daily_min: 3
+  daily_max: 6
+
+reward:
+  clam:
+    daily_min: 150
+    daily_max: 270
+  rep:
+    daily_min: 8
+    daily_max: 16

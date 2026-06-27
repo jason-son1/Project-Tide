@@ -1,0 +1,22 @@
+id: rep_earner_daily
+name: "§a명성을 높여라"
+description: "오늘 하루 다양한 활동으로 평판을 쌓아라."
+icon: BOOK
+schedule: daily
+weight: 9
+
+trigger:
+  type: REP_EARN
+  filter: ""
+
+target:
+  daily_min: 3
+  daily_max: 6
+
+reward:
+  clam:
+    daily_min: 90
+    daily_max: 160
+  rep:
+    daily_min: 5
+    daily_max: 10

@@ -1,5 +1,6 @@
 package com.tide.core.menu;
 
+import com.tide.core.TideCorePlugin;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -54,8 +55,6 @@ public class MainMenuListener implements Listener {
             case 10 -> player.performCommand("bounty");
             case 11 -> player.performCommand("forge");
             case 12 -> player.performCommand("shop");
-            case 14 -> player.performCommand("deepmine join");
-            case 15 -> player.performCommand("sellall");
             case 16 -> {
                 if (player.isOp() || player.hasPermission("tide.admin")) {
                     player.performCommand("tide admin");
@@ -63,6 +62,7 @@ public class MainMenuListener implements Listener {
                     player.sendMessage("§c관리자 권한이 없습니다.");
                 }
             }
+            case 17 -> TideCorePlugin.getInstance().getLobbyManager().teleportToLobby(player);
         }
     }
 }

@@ -1,0 +1,22 @@
+id: fishing_perfect_touch
+name: "§a완벽한 손맛"
+description: "타이밍을 정확히 맞춰라! Perfect 판정 낚시로 진귀한 보상을."
+icon: FISHING_ROD
+schedule: daily
+weight: 8
+
+trigger:
+  type: FISHING_PERFECT
+  filter: ""
+
+target:
+  daily_min: 1
+  daily_max: 3
+
+reward:
+  clam:
+    daily_min: 200
+    daily_max: 400
+  rep:
+    daily_min: 10
+    daily_max: 25

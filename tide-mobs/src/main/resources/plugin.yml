@@ -15,5 +15,5 @@ commands:
     usage: /bountycontract <post <선불금> <성공보수>|list>
   altar:
     description: 보스 제단을 생성/관리합니다. (tide.admin 필요)
-    usage: /altar <create <id> [boss_type]|list|info <id>|remove <id>>
+    usage: /altar <create <id> [boss_type]|list|info <id>|tp <id>|remove <id>>
     permission: tide.admin

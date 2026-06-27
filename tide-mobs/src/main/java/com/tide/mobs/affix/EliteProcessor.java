@@ -40,7 +40,12 @@ public final class EliteProcessor {
                 .collect(Collectors.joining(""));
         entity.setCustomName(namePrefix + " §f" + baseDisplayName(entity));
         entity.setCustomNameVisible(true);
-        entity.setGlowing(true);
+        var glowRangeManager = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.glow.GlowRangeManager.class);
+        if (glowRangeManager != null) {
+            glowRangeManager.register(entity, 20.0);
+        } else {
+            entity.setGlowing(true);
+        }
 
         var pdc = entity.getPersistentDataContainer();
         pdc.set(TideKeys.ELITE, PersistentDataType.BYTE, (byte) 1);

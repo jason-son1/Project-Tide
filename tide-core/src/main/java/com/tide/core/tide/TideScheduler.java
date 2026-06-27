@@ -26,6 +26,7 @@ public final class TideScheduler implements TideStateProvider {
     private TideState currentState = TideState.HIGH_TIDE;
     private TideState lastBaseState = TideState.LOW_TIDE; // so the first roll alternates into HIGH_TIDE
     private long secondsRemaining;
+    private long totalSecondsForCurrentCycle;
     private LocalDate lastScheduledSpringDate;
     private BukkitTask task;
     private long cycleDurationMinutes = 120;
@@ -38,6 +39,7 @@ public final class TideScheduler implements TideStateProvider {
     public void start() {
         cycleDurationMinutes = plugin.getConfig().getLong("tide.cycle-duration-minutes", 120);
         secondsRemaining = cycleDurationMinutes * 60L;
+        totalSecondsForCurrentCycle = secondsRemaining;
         for (Player player : Bukkit.getOnlinePlayers()) {
             bossBar.addPlayer(player);
         }
@@ -61,6 +63,7 @@ public final class TideScheduler implements TideStateProvider {
         if (secondsRemaining <= 0) {
             transition();
             secondsRemaining = cycleDurationMinutes * 60L;
+            totalSecondsForCurrentCycle = secondsRemaining;
         }
         updateBossBarText();
     }
@@ -132,6 +135,7 @@ public final class TideScheduler implements TideStateProvider {
         if (secondsRemaining > newDuration) {
             secondsRemaining = newDuration;
         }
+        totalSecondsForCurrentCycle = newDuration;
         plugin.getConfig().set("tide.cycle-duration-minutes", minutes);
         plugin.saveConfig();
         updateBossBarText();
@@ -144,6 +148,11 @@ public final class TideScheduler implements TideStateProvider {
         bossBar.setTitle(String.format("%s §7— 다음 변동까지 §f%02d:%02d:%02d",
                 currentState.getDisplayName(), hours, minutes, seconds));
         bossBar.setColor(barColorFor(currentState));
+
+        double progress = totalSecondsForCurrentCycle > 0
+                ? Math.max(0.0, Math.min(1.0, (double) secondsRemaining / (double) totalSecondsForCurrentCycle))
+                : 1.0;
+        bossBar.setProgress(progress);
     }
 
     private BarColor barColorFor(TideState state) {
@@ -170,6 +179,7 @@ public final class TideScheduler implements TideStateProvider {
             lastBaseState = state;
         }
         secondsRemaining = durationSeconds;
+        totalSecondsForCurrentCycle = durationSeconds;
         updateBossBarText();
         Bukkit.getPluginManager().callEvent(new TideChangeEvent(previous, currentState));
     }

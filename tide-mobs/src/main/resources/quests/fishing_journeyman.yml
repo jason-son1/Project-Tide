@@ -1,0 +1,22 @@
+id: fishing_journeyman
+name: "§e숙련된 낚시꾼"
+description: "낚시의 진수를 보여줄 시간이다. 더 많이 낚아라."
+icon: FISHING_ROD
+schedule: daily
+weight: 10
+
+trigger:
+  type: FISHING_SUCCESS
+  filter: ""
+
+target:
+  daily_min: 15
+  daily_max: 20
+
+reward:
+  clam:
+    daily_min: 200
+    daily_max: 350
+  rep:
+    daily_min: 10
+    daily_max: 18

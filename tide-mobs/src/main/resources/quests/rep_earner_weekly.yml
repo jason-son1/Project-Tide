@@ -1,0 +1,22 @@
+id: rep_earner_weekly
+name: "§a§l이 바다의 명사"
+description: "이번 주에 다양한 활동으로 명성을 크게 높여라. 이름을 세상에 알릴 시간이다."
+icon: BOOK
+schedule: weekly
+weight: 11
+
+trigger:
+  type: REP_EARN
+  filter: ""
+
+target:
+  weekly_min: 15
+  weekly_max: 25
+
+reward:
+  clam:
+    weekly_min: 600
+    weekly_max: 900
+  rep:
+    weekly_min: 40
+    weekly_max: 60

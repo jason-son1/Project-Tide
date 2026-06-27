@@ -1,42 +1,21 @@
-﻿gs:
-  per_reinforce_star: 5
-
-forge:
-  reinforce-success-rate:
-    1: 100
-    2: 90
-    3: 80
-    4: 70
-    5: 60
-    6: 50
-    7: 40
-    8: 35
-    9: 30
-    10: 25
-  reinforce-cost-base: 100
-  reinforce-cost-multiplier: 1.5
-  protection-scroll-pearl-cost: 3
-
-reroll:
-  pearl-cost: 5
-
-fusion:
-  same-rune-required: 3
-
 tidal_currents:
   transition-window-seconds: 20
   strength: 0.25
   shore-direction: { x: 1.0, z: 0.0 }
 
 deepmine:
-  world: world
-  reset-interval-minutes: 30
-  bounds:
-    min: { x: -200, y: -64, z: -200 }
-    max: { x: -100, y: 60, z: -100 }
-  entrance: { x: -150, y: 61, z: -150 }
+  # 인스턴스가 여러 개일 수 있습니다 (관리자 명령어 `/deepmine create`로 자동 추가 가능).
+  # 새 인스턴스는 기존 인스턴스들과 겹치지 않게 자동으로 좌표를 계산해 이 목록 끝에 추가됩니다.
+  instances:
+    - id: "mine_1"
+      world: world
+      reset-interval-minutes: 30
+      bounds:
+        min: { x: -200, y: -64, z: -200 }
+        max: { x: -100, y: 60, z: -100 }
+      entrance: { x: -150, y: 61, z: -150 }
   discovery-chance: 0.002
-  hazard-chance: 0.05
+  hazard-chance: 0.02
   toxic-gas-damage: 2.0
   toxic-gas-interval-seconds: 5
   tiers:
@@ -115,17 +94,17 @@ deepmine:
       rune_lightning_1:
         weight: 2
         kind: "RUNE"
-      rune_intellect_1:
+      rune_slow_1:
         weight: 2
         kind: "RUNE"
-      rune_strength_1:
+      rune_berserk_1:
         weight: 2
         kind: "RUNE"
-      rune_defense_1:
-        weight: 2
+      rune_lifesteal_2:
+        weight: 1
         kind: "RUNE"
-      rune_haste_1:
-        weight: 2
+      rune_lightning_2:
+        weight: 1
         kind: "RUNE"
 
 functional-items:
@@ -133,262 +112,3 @@ functional-items:
     enabled: true
   scroll_of_return:
     enabled: true
-
-shop:
-  buy:
-    - id: "reinforce_stone"
-      price: 50
-      currency: "CLAM"
-      slot: 10
-      kind: "ITEM"
-    - id: "protection_scroll"
-      price: 5
-      currency: "PEARL"
-      slot: 11
-      kind: "ITEM"
-    - id: "scroll_of_return"
-      price: 3
-      currency: "PEARL"
-      slot: 12
-      kind: "ITEM"
-    - id: "spawn_setter"
-      price: 15
-      currency: "PEARL"
-      slot: 13
-      kind: "ITEM"
-    - id: "deepmine_gasmask"
-      price: 200
-      currency: "CLAM"
-      slot: 14
-      kind: "ITEM"
-    - id: "deepmine_lantern"
-      price: 80
-      currency: "CLAM"
-      slot: 15
-      kind: "ITEM"
-    - id: "deepmine_pickaxe"
-      price: 150
-      currency: "CLAM"
-      slot: 16
-      kind: "ITEM"
-    - id: "iron_sword_t1"
-      price: 200
-      currency: "CLAM"
-      slot: 19
-      kind: "ITEM"
-    - id: "t1_oak_bow"
-      price: 150
-      currency: "CLAM"
-      slot: 20
-      kind: "ITEM"
-    - id: "t1_leather_helmet"
-      price: 80
-      currency: "CLAM"
-      slot: 21
-      kind: "ITEM"
-    - id: "t1_leather_leggings"
-      price: 100
-      currency: "CLAM"
-      slot: 22
-      kind: "ITEM"
-    - id: "t1_leather_boots"
-      price: 70
-      currency: "CLAM"
-      slot: 23
-      kind: "ITEM"
-    - id: "t2_chainmail_helmet"
-      price: 400
-      currency: "CLAM"
-      slot: 28
-      kind: "ITEM"
-    - id: "t2_chainmail_chestplate"
-      price: 550
-      currency: "CLAM"
-      slot: 29
-      kind: "ITEM"
-    - id: "t2_chainmail_leggings"
-      price: 480
-      currency: "CLAM"
-      slot: 30
-      kind: "ITEM"
-    - id: "t2_chainmail_boots"
-      price: 360
-      currency: "CLAM"
-      slot: 31
-      kind: "ITEM"
-    - id: "t2_barbed_crossbow"
-      price: 600
-      currency: "CLAM"
-      slot: 32
-      kind: "ITEM"
-    - id: "t2_coral_trident"
-      price: 8
-      currency: "PEARL"
-      slot: 33
-      kind: "ITEM"
-    - id: "rune_lifesteal_1"
-      price: 3
-      currency: "PEARL"
-      slot: 37
-      kind: "RUNE"
-    - id: "rune_lightning_1"
-      price: 3
-      currency: "PEARL"
-      slot: 38
-      kind: "RUNE"
-    - id: "rune_intellect_1"
-      price: 2
-      currency: "PEARL"
-      slot: 39
-      kind: "RUNE"
-    - id: "rune_strength_1"
-      price: 2
-      currency: "PEARL"
-      slot: 40
-      kind: "RUNE"
-    - id: "rune_defense_1"
-      price: 2
-      currency: "PEARL"
-      slot: 41
-      kind: "RUNE"
-    - id: "rune_haste_1"
-      price: 2
-      currency: "PEARL"
-      slot: 42
-      kind: "RUNE"
-    - id: "rune_slow_1"
-      price: 2
-      currency: "PEARL"
-      slot: 43
-      kind: "RUNE"
-    - id: "rune_berserk_1"
-      price: 4
-      currency: "PEARL"
-      slot: 44
-      kind: "RUNE"
-  sell:
-    - id: "COAL"
-      price: 2
-      currency: "CLAM"
-      slot: 10
-      kind: "VANILLA"
-    - id: "RAW_IRON"
-      price: 5
-      currency: "CLAM"
-      slot: 11
-      kind: "VANILLA"
-    - id: "RAW_GOLD"
-      price: 10
-      currency: "CLAM"
-      slot: 12
-      kind: "VANILLA"
-    - id: "DIAMOND"
-      price: 50
-      currency: "CLAM"
-      slot: 13
-      kind: "VANILLA"
-    - id: "EMERALD"
-      price: 40
-      currency: "CLAM"
-      slot: 14
-      kind: "VANILLA"
-    - id: "IRON_INGOT"
-      price: 8
-      currency: "CLAM"
-      slot: 15
-      kind: "VANILLA"
-    - id: "GOLD_INGOT"
-      price: 15
-      currency: "CLAM"
-      slot: 16
-      kind: "VANILLA"
-    - id: "abyssal_core"
-      price: 120
-      currency: "CLAM"
-      slot: 19
-      kind: "ITEM"
-    - id: "void_crystal"
-      price: 200
-      currency: "CLAM"
-      slot: 20
-      kind: "ITEM"
-    - id: "bioluminescent_essence"
-      price: 35
-      currency: "CLAM"
-      slot: 21
-      kind: "ITEM"
-    - id: "soul_fragment"
-      price: 25
-      currency: "CLAM"
-      slot: 22
-      kind: "ITEM"
-    - id: "deepmine_lantern"
-      price: 40
-      currency: "CLAM"
-      slot: 23
-      kind: "ITEM"
-    - id: "iron_sword_t1"
-      price: 60
-      currency: "CLAM"
-      slot: 28
-      kind: "ITEM"
-    - id: "t1_oak_bow"
-      price: 45
-      currency: "CLAM"
-      slot: 29
-      kind: "ITEM"
-    - id: "t1_leather_helmet"
-      price: 25
-      currency: "CLAM"
-      slot: 30
-      kind: "ITEM"
-    - id: "t1_leather_leggings"
-      price: 30
-      currency: "CLAM"
-      slot: 31
-      kind: "ITEM"
-    - id: "t1_leather_boots"
-      price: 20
-      currency: "CLAM"
-      slot: 32
-      kind: "ITEM"
-    - id: "reinforce_stone"
-      price: 15
-      currency: "CLAM"
-      slot: 33
-      kind: "ITEM"
-    - id: "t2_chainmail_helmet"
-      price: 120
-      currency: "CLAM"
-      slot: 37
-      kind: "ITEM"
-    - id: "t2_chainmail_chestplate"
-      price: 165
-      currency: "CLAM"
-      slot: 38
-      kind: "ITEM"
-    - id: "t2_chainmail_leggings"
-      price: 144
-      currency: "CLAM"
-      slot: 39
-      kind: "ITEM"
-    - id: "t2_chainmail_boots"
-      price: 108
-      currency: "CLAM"
-      slot: 40
-      kind: "ITEM"
-    - id: "t2_barbed_crossbow"
-      price: 180
-      currency: "CLAM"
-      slot: 41
-      kind: "ITEM"
-    - id: "t2_coral_trident"
-      price: 5
-      currency: "PEARL"
-      slot: 42
-      kind: "ITEM"
-    - id: "deepmine_pickaxe"
-      price: 45
-      currency: "CLAM"
-      slot: 43
-      kind: "ITEM"

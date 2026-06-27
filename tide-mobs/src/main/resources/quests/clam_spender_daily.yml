@@ -1,0 +1,22 @@
+id: clam_spender_daily
+name: "§6활발한 경제 활동"
+description: "조개를 소비하여 경제 활동에 참여하라. 상점에서 물건을 구매하면 달성된다."
+icon: GOLD_NUGGET
+schedule: daily
+weight: 9
+
+trigger:
+  type: CLAM_SPEND
+  filter: ""
+
+target:
+  daily_min: 3
+  daily_max: 5
+
+reward:
+  clam:
+    daily_min: 100
+    daily_max: 180
+  rep:
+    daily_min: 8
+    daily_max: 15
