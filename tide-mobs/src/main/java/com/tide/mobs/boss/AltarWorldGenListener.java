@@ -1,6 +1,5 @@
 package com.tide.mobs.boss;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -89,7 +88,11 @@ public final class AltarWorldGenListener implements Listener {
         };
         final String finalDisplayName = displayName;
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        // The arena sits ~16 blocks south of the surface point and itself spans a further
+        // ±13-block radius — well past the single chunk that triggered this roll. Pre-load the
+        // whole footprint asynchronously first so writing those blocks never forces a surprise
+        // synchronous load of a neighboring chunk from inside this chunk-load handler.
+        com.tide.core.util.ChunkPreloader.preload(plugin, world, blockX, blockZ, 30, () -> {
             File altarsDir = new File(plugin.getDataFolder(), "altars");
             if (!altarsDir.exists()) altarsDir.mkdirs();
 
@@ -117,7 +120,7 @@ public final class AltarWorldGenListener implements Listener {
                 yaml.save(outFile);
                 BossArenaBuilder.build(altarLoc, finalBossType);
                 AltarBuilder.build(altarLoc);
-                buildSurfaceShrine(world, baseLoc, mouthLoc);
+                buildSurfaceShrine(world, baseLoc, mouthLoc, biomeName);
                 altarRegistry.reload();
                 plugin.getLogger().info("[보스제단 월드젠] (" + altarLoc.getBlockX() + ", " + altarLoc.getBlockY() + ", " + altarLoc.getBlockZ()
                         + ") 지하에 '" + id + "' (" + finalBossType + ") 생성 완료.");
@@ -127,22 +130,31 @@ public final class AltarWorldGenListener implements Listener {
         });
     }
 
-    private void buildSurfaceShrine(World world, Location surfaceCenter, Location mouthLoc) {
+    private void buildSurfaceShrine(World world, Location surfaceCenter, Location mouthLoc, String biomeName) {
         int cx = surfaceCenter.getBlockX();
         int cy = surfaceCenter.getBlockY();
         int cz = surfaceCenter.getBlockZ();
         ThreadLocalRandom rng = ThreadLocalRandom.current();
+        Material[] floorPalette = biomeFloorPalette(biomeName);
+        Material[] edgePalette = biomeEdgePalette(biomeName);
 
         // 1. Terrain-aware platform: each (x,z) column filled from highestY down to cy
         for (int dx = -3; dx <= 3; dx++) {
             for (int dz = -3; dz <= 3; dz++) {
+                boolean outerRing = Math.abs(dx) == 3 || Math.abs(dz) == 3;
                 int localHighest = world.getHighestBlockYAt(cx + dx, cz + dz);
                 // Fill from surface down to platform level
                 for (int y = localHighest; y >= cy - 3; y--) {
                     Block b = world.getBlockAt(cx + dx, y, cz + dz);
                     if (y == cy) {
-                        // Platform surface: mossy/cracked mix
-                        b.setType((Math.abs(dx) == 3 || Math.abs(dz) == 3) ? getShrineEdgeMat(rng) : getShrineFloorMat(rng), false);
+                        // Noise-style edge feathering: the outer ring has a chance to keep
+                        // whatever natural terrain was already there instead of always being
+                        // overwritten, so the platform's boundary looks eroded/grown-over
+                        // rather than a perfectly cut square.
+                        if (outerRing && rng.nextDouble() < 0.35) {
+                            continue;
+                        }
+                        b.setType(outerRing ? pick(edgePalette, rng) : pick(floorPalette, rng), false);
                     } else if (y > cy) {
                         // Remove any terrain above platform (level it)
                         b.setType(Material.AIR, false);
@@ -151,6 +163,22 @@ public final class AltarWorldGenListener implements Listener {
                         if (b.getType().isAir() || b.getType() == Material.CAVE_AIR || !b.getType().isSolid())
                             b.setType(Material.STONE_BRICKS, false);
                     }
+                }
+
+                // Adaptive foundation: the fixed 3-block pad above isn't guaranteed to land on
+                // solid ground on a cliff/overhang — keep extending the support pillar straight
+                // down until it actually reaches solid ground (capped, so a floating island
+                // doesn't recurse all the way to bedrock).
+                int supportY = cy - 4;
+                int safety = 0;
+                while (safety < 20) {
+                    Block below = world.getBlockAt(cx + dx, supportY, cz + dz);
+                    if (below.getType().isSolid() && below.getType() != Material.CAVE_AIR) {
+                        break;
+                    }
+                    below.setType(Material.STONE_BRICKS, false);
+                    supportY--;
+                    safety++;
                 }
             }
         }
@@ -232,20 +260,56 @@ public final class AltarWorldGenListener implements Listener {
         }
     }
 
-    private Material getShrineFloorMat(ThreadLocalRandom rng) {
-        double r = rng.nextDouble();
-        if (r < 0.30) return Material.MOSSY_STONE_BRICKS;
-        if (r < 0.55) return Material.CRACKED_STONE_BRICKS;
-        if (r < 0.75) return Material.STONE_BRICKS;
-        if (r < 0.88) return Material.COBBLESTONE;
-        return Material.MOSSY_COBBLESTONE;
+    /** Biome-adaptive floor palette so the shrine reads as "built from what's around it"
+     *  instead of always being grey stone brick regardless of desert/snow/jungle/swamp. */
+    private Material[] biomeFloorPalette(String biomeName) {
+        if (biomeName.contains("DESERT")) {
+            return new Material[]{Material.SMOOTH_SANDSTONE, Material.SMOOTH_SANDSTONE, Material.CUT_SANDSTONE,
+                    Material.SANDSTONE, Material.CHISELED_SANDSTONE};
+        }
+        if (biomeName.contains("BADLANDS") || biomeName.contains("MESA")) {
+            return new Material[]{Material.RED_SANDSTONE, Material.RED_SANDSTONE, Material.TERRACOTTA,
+                    Material.RED_TERRACOTTA, Material.CHISELED_RED_SANDSTONE};
+        }
+        if (biomeName.contains("SNOWY") || biomeName.contains("ICE") || biomeName.contains("FROZEN")) {
+            return new Material[]{Material.POLISHED_ANDESITE, Material.STONE_BRICKS, Material.PACKED_ICE,
+                    Material.SNOW_BLOCK, Material.COBBLESTONE};
+        }
+        if (biomeName.contains("JUNGLE") || biomeName.contains("LUSH")) {
+            return new Material[]{Material.MOSSY_STONE_BRICKS, Material.MOSSY_STONE_BRICKS, Material.MOSS_BLOCK,
+                    Material.CRACKED_STONE_BRICKS, Material.MOSSY_COBBLESTONE};
+        }
+        if (biomeName.contains("SWAMP") || biomeName.contains("MANGROVE")) {
+            return new Material[]{Material.MUD_BRICKS, Material.PACKED_MUD, Material.MOSSY_STONE_BRICKS,
+                    Material.MOSSY_COBBLESTONE, Material.MUD_BRICKS};
+        }
+        return new Material[]{Material.MOSSY_STONE_BRICKS, Material.CRACKED_STONE_BRICKS, Material.STONE_BRICKS,
+                Material.COBBLESTONE, Material.MOSSY_COBBLESTONE};
     }
 
-    private Material getShrineEdgeMat(ThreadLocalRandom rng) {
-        double r = rng.nextDouble();
-        if (r < 0.40) return Material.MOSSY_COBBLESTONE;
-        if (r < 0.70) return Material.COBBLESTONE;
-        return Material.GRAVEL;
+    /** Edge material is the "most weathered/natural-looking" subset of the same biome palette —
+     *  it's what blends into the surrounding ground at the platform's perimeter. */
+    private Material[] biomeEdgePalette(String biomeName) {
+        if (biomeName.contains("DESERT")) {
+            return new Material[]{Material.SAND, Material.SANDSTONE, Material.SAND};
+        }
+        if (biomeName.contains("BADLANDS") || biomeName.contains("MESA")) {
+            return new Material[]{Material.RED_SAND, Material.COARSE_DIRT, Material.RED_TERRACOTTA};
+        }
+        if (biomeName.contains("SNOWY") || biomeName.contains("ICE") || biomeName.contains("FROZEN")) {
+            return new Material[]{Material.SNOW_BLOCK, Material.PACKED_ICE, Material.GRAVEL};
+        }
+        if (biomeName.contains("JUNGLE") || biomeName.contains("LUSH")) {
+            return new Material[]{Material.MOSSY_COBBLESTONE, Material.MOSS_BLOCK, Material.MUDDY_MANGROVE_ROOTS};
+        }
+        if (biomeName.contains("SWAMP") || biomeName.contains("MANGROVE")) {
+            return new Material[]{Material.MUD, Material.PACKED_MUD, Material.MOSSY_COBBLESTONE};
+        }
+        return new Material[]{Material.MOSSY_COBBLESTONE, Material.COBBLESTONE, Material.GRAVEL};
+    }
+
+    private Material pick(Material[] palette, ThreadLocalRandom rng) {
+        return palette[rng.nextInt(palette.length)];
     }
 
     private boolean isNaturalGround(Material type) {

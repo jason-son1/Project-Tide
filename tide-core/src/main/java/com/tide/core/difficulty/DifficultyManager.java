@@ -23,7 +23,7 @@ import java.util.List;
 public final class DifficultyManager {
 
     private static final DifficultyBracket FALLBACK_BRACKET =
-            new DifficultyBracket("t1", 0, 500, 1.3, 1.15, 1, 1.0);
+            new DifficultyBracket("t1", 0, 650, 1.2, 1.1, 1, 1.0);
 
     private final JavaPlugin plugin;
     private final EconomyAPI economyAPI;

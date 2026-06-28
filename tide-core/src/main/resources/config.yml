@@ -22,22 +22,22 @@ tide:
 difficulty-scaling:
   enabled: true
   pi-weights:
-    gear-score: 0.7
-    reputation: 0.3
+    gear-score: 0.95
+    reputation: 0.05
   multiplayer-alpha: 0.6
   scan-radius: 48
   tide-multipliers:
     HIGH_TIDE: 1.0
     LOW_TIDE: 1.0
-    SPRING_TIDE: 1.15
-    BLOOD_MOON: 1.3
-    BLOOD_TIDE: 1.6
+    SPRING_TIDE: 1.1
+    BLOOD_MOON: 1.2
+    BLOOD_TIDE: 1.4
   brackets:
-    t1: { min-pi: 0,    max-pi: 500,  hp-scale: 1.3, dmg-scale: 1.15, max-affixes: 1, sell-bonus: 1.0 }
-    t2: { min-pi: 500,  max-pi: 1100, hp-scale: 1.8, dmg-scale: 1.4,  max-affixes: 1, sell-bonus: 1.1 }
-    t3: { min-pi: 1100, max-pi: 2300, hp-scale: 2.6, dmg-scale: 1.7,  max-affixes: 2, sell-bonus: 1.2 }
-    t4: { min-pi: 2300, max-pi: 3500, hp-scale: 3.6, dmg-scale: 2.1,  max-affixes: 2, sell-bonus: 1.35 }
-    t5: { min-pi: 3500, max-pi: 5500, hp-scale: 5.0, dmg-scale: 2.6,  max-affixes: 3, sell-bonus: 1.5 }
+    t1: { min-pi: 0,    max-pi: 650,  hp-scale: 1.2, dmg-scale: 1.1,  max-affixes: 1, sell-bonus: 1.0 }
+    t2: { min-pi: 650,  max-pi: 1350, hp-scale: 1.5, dmg-scale: 1.2,  max-affixes: 1, sell-bonus: 1.1 }
+    t3: { min-pi: 1350, max-pi: 2700, hp-scale: 1.9, dmg-scale: 1.35, max-affixes: 2, sell-bonus: 1.2 }
+    t4: { min-pi: 2700, max-pi: 4600, hp-scale: 2.4, dmg-scale: 1.5,  max-affixes: 2, sell-bonus: 1.35 }
+    t5: { min-pi: 4600, max-pi: 7500, hp-scale: 3.0, dmg-scale: 1.7,  max-affixes: 3, sell-bonus: 1.5 }
 
 economy:
   clam-sink-reinforce-base: 100

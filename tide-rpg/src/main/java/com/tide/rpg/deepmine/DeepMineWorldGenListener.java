@@ -1,6 +1,5 @@
 package com.tide.rpg.deepmine;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -55,7 +54,10 @@ public final class DeepMineWorldGenListener implements Listener {
         if (targetLoc == null) return;
 
         final Location spawnLoc = targetLoc;
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        // The ruin's footprint can brush against a neighboring chunk when blockX/blockZ land
+        // near the chunk's edge (offset up to 12 + 4-block reach) — pre-load that small margin
+        // asynchronously instead of letting buildPortalRuin's block writes force a sync load.
+        com.tide.core.util.ChunkPreloader.preload(plugin, world, blockX, blockZ, 10, () -> {
             try {
                 DeepMineManager manager = registry.createAutoInstance(null);
                 if (manager == null) return;

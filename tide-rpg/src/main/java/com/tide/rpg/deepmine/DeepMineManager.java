@@ -345,6 +345,22 @@ public final class DeepMineManager {
         }
     }
 
+    private int dsuFind(int[] parent, int i) {
+        while (parent[i] != i) {
+            parent[i] = parent[parent[i]];
+            i = parent[i];
+        }
+        return i;
+    }
+
+    private void dsuUnion(int[] parent, int a, int b) {
+        int rootA = dsuFind(parent, a);
+        int rootB = dsuFind(parent, b);
+        if (rootA != rootB) {
+            parent[rootA] = rootB;
+        }
+    }
+
     /** Vertical ladder well between two Y "stops" (the entrance or a layer's junction-room
      *  floor), always at the same fixed (x,z) column so it lines up with the junction room
      *  carved at every stop. A water landing pad sits at the bottom of each segment so dropping
@@ -1023,6 +1039,38 @@ public final class DeepMineManager {
                 }
             }
 
+            // Graph-connectivity guarantee: the corridors above only link grid cells that happen
+            // to be forward-adjacent (c to c+1, r to r+1) — a room whose neighbors both rolled
+            // "no room" ends up an isolated pocket with no path to it at all. Union-Find over the
+            // rooms actually carved finds every such leftover island and stitches a direct
+            // corridor from it straight to the junction hub, guaranteeing every generated room on
+            // this layer is reachable (loops from the grid corridors above are preserved as-is —
+            // this only adds the missing links, never removes one).
+            if (nearestR != -1) {
+                int[] parent = new int[gridSize * gridSize];
+                for (int i = 0; i < parent.length; i++) parent[i] = i;
+                for (int r = 0; r < gridSize; r++) {
+                    for (int c = 0; c < gridSize; c++) {
+                        if (!hasRoom[r][c]) continue;
+                        if (c + 1 < gridSize && hasRoom[r][c + 1]) {
+                            dsuUnion(parent, r * gridSize + c, r * gridSize + (c + 1));
+                        }
+                        if (r + 1 < gridSize && hasRoom[r + 1][c]) {
+                            dsuUnion(parent, r * gridSize + c, (r + 1) * gridSize + c);
+                        }
+                    }
+                }
+                int hubIndex = nearestR * gridSize + nearestC;
+                for (int r = 0; r < gridSize; r++) {
+                    for (int c = 0; c < gridSize; c++) {
+                        if (!hasRoom[r][c]) continue;
+                        if (dsuFind(parent, r * gridSize + c) == dsuFind(parent, hubIndex)) continue;
+                        carveCorridorSegmentX(blocks, junctionX, cellCentersX[c], junctionZ, layerYIdx, realLayerY, isDeep);
+                        carveCorridorSegmentZ(blocks, cellCentersX[c], junctionZ, cellCentersZ[r], layerYIdx, realLayerY, isDeep);
+                        dsuUnion(parent, r * gridSize + c, hubIndex);
+                    }
+                }
+            }
         }
 
         // One continuous shaft from the entrance down through every layer's junction room, all
