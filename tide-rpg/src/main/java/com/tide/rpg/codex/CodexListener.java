@@ -13,13 +13,24 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 public final class CodexListener implements Listener {
 
     private final CodexGUI codexGUI;
+    private final RuneCodexGUI runeCodexGUI;
 
-    public CodexListener(CodexGUI codexGUI) {
+    public CodexListener(CodexGUI codexGUI, RuneCodexGUI runeCodexGUI) {
         this.codexGUI = codexGUI;
+        this.runeCodexGUI = runeCodexGUI;
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
+        if (event.getInventory().getHolder() instanceof RuneCodexHolder) {
+            event.setCancelled(true);
+            if (event.getWhoClicked() instanceof Player player && event.getRawSlot() == 0) {
+                player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.6f, 1.2f);
+                codexGUI.open(player);
+            }
+            return;
+        }
+
         if (!(event.getInventory().getHolder() instanceof CodexHolder holder)) {
             return;
         }
@@ -40,6 +51,12 @@ public final class CodexListener implements Listener {
             case 2 -> { if (currentTab != CodexTab.CONSUMABLE) openTab(player, CodexTab.CONSUMABLE, 0); return; }
             case 3 -> { if (currentTab != CodexTab.DEEPMINE)   openTab(player, CodexTab.DEEPMINE,   0); return; }
             case 4 -> { if (currentTab != CodexTab.BOSS)       openTab(player, CodexTab.BOSS,       0); return; }
+        }
+
+        if (slot == 5) {
+            player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.6f, 1.2f);
+            runeCodexGUI.open(player);
+            return;
         }
 
         if (slot == 8) {

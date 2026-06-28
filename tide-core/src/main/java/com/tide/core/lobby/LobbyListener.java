@@ -2,6 +2,7 @@ package com.tide.core.lobby;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -48,6 +49,18 @@ public class LobbyListener implements Listener {
                 player.teleport(lobbyManager.getLobbySpawn());
                 player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
                 player.sendMessage("§c로비 구역 밖으로 나갈 수 없습니다!");
+            }
+        }
+
+        // 3. Escape portal block step-on check
+        if (lobbyManager.getLobbySpawn() != null && lobbyManager.isInsideLobby(player.getLocation())) {
+            Location playerLoc = player.getLocation();
+            org.bukkit.block.Block blockUnder = playerLoc.clone().subtract(0, 0.1, 0).getBlock();
+            if (blockUnder.getType() == Material.LIGHT_BLUE_STAINED_GLASS) {
+                int cz = lobbyManager.getLobbySpawn().getBlockZ();
+                if (Math.abs(blockUnder.getZ() - (cz - 11)) <= 1) {
+                    teleportToSpawn(player);
+                }
             }
         }
     }
@@ -106,7 +119,7 @@ public class LobbyListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getClickedBlock() == null) return;
         if (lobbyManager.isInsideLobby(event.getClickedBlock().getLocation())) {

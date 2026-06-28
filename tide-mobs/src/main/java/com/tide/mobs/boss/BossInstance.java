@@ -1,5 +1,6 @@
 package com.tide.mobs.boss;
 
+import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 
 import java.util.HashSet;
@@ -15,6 +16,11 @@ public final class BossInstance {
     private int phase = 1;
     private boolean enraged;
     private String bossType = "VOID_KNIGHT";
+    private Location spawnLocation;
+    private double gearScoreFactor = 1.0;
+    private int shieldHitsLeft = 0;
+    private boolean shieldActive = false;
+    private boolean shieldTriggered = false;
 
     public BossInstance(String altarId, LivingEntity entity) {
         this.altarId = altarId;
@@ -56,4 +62,19 @@ public final class BossInstance {
 
     public String getBossType() { return bossType; }
     public void setBossType(String bossType) { this.bossType = bossType; }
+
+    public Location getSpawnLocation() { return spawnLocation; }
+    public void setSpawnLocation(Location spawnLocation) { this.spawnLocation = spawnLocation; }
+
+    public double getGearScoreFactor() { return gearScoreFactor; }
+    public void setGearScoreFactor(double gearScoreFactor) { this.gearScoreFactor = gearScoreFactor; }
+
+    public int getShieldHitsLeft() { return shieldHitsLeft; }
+    public void setShieldHitsLeft(int shieldHitsLeft) { this.shieldHitsLeft = shieldHitsLeft; }
+
+    public boolean isShieldActive() { return shieldActive; }
+    public void setShieldActive(boolean shieldActive) { this.shieldActive = shieldActive; }
+
+    public boolean isShieldTriggered() { return shieldTriggered; }
+    public void setShieldTriggered(boolean shieldTriggered) { this.shieldTriggered = shieldTriggered; }
 }

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Manages all active boss fights.
@@ -66,12 +67,34 @@ public final class BossFightManager {
     }
 
     public void summon(Player summoner, SoulAltar altar) {
-        int partySize = (int) summoner.getWorld().getNearbyEntities(summoner.getLocation(), PARTY_RADIUS, PARTY_RADIUS, PARTY_RADIUS)
-                .stream().filter(e -> e instanceof Player).count();
-        partySize = Math.max(1, partySize);
+        List<Player> nearbyPlayers = summoner.getWorld().getNearbyEntities(summoner.getLocation(), PARTY_RADIUS, PARTY_RADIUS, PARTY_RADIUS)
+                .stream()
+                .filter(e -> e instanceof Player)
+                .map(e -> (Player) e)
+                .toList();
+
+        int partySize = Math.max(1, nearbyPlayers.size());
+
+        // Calculate average Peak Gear Score of nearby players for dynamic scaling
+        double avgPeakGS = 0;
+        if (!nearbyPlayers.isEmpty()) {
+            double totalGS = 0;
+            for (Player p : nearbyPlayers) {
+                totalGS += economyAPI.getPeakGearScore(p.getUniqueId());
+            }
+            avgPeakGS = totalGS / nearbyPlayers.size();
+        } else {
+            avgPeakGS = economyAPI.getPeakGearScore(summoner.getUniqueId());
+        }
+        avgPeakGS = Math.max(100.0, avgPeakGS);
+
+        // gsFactor: Baseline GS is 600.0 (factor = 1.0). Minimum factor = 0.8, Maximum factor = 3.0.
+        double gsFactor = avgPeakGS / 600.0;
+        if (gsFactor < 0.8) gsFactor = 0.8;
+        if (gsFactor > 3.0) gsFactor = 3.0;
 
         EntityType bossEntityType = resolveBossEntityType(altar.getBossType());
-        double hp = BASE_HP * (1 + 0.5 * (partySize - 1)) * bossHpMultiplier(altar.getBossType());
+        double hp = BASE_HP * (1.0 + 0.5 * (partySize - 1)) * bossHpMultiplier(altar.getBossType()) * gsFactor;
 
         LivingEntity boss = (LivingEntity) altar.summonLocation().getWorld()
                 .spawnEntity(altar.summonLocation(), bossEntityType);
@@ -92,6 +115,8 @@ public final class BossFightManager {
 
         BossInstance instance = new BossInstance(altar.getId(), boss);
         instance.setBossType(altar.getBossType());
+        instance.setSpawnLocation(altar.summonLocation());
+        instance.setGearScoreFactor(gsFactor);
         activeByEntity.put(boss.getUniqueId(), instance);
 
         summoner.getWorld().strikeLightningEffect(altar.summonLocation());
@@ -132,24 +157,28 @@ public final class BossFightManager {
 
     public void rewardParticipants(BossInstance instance) {
         String bossType = instance.getBossType() != null ? instance.getBossType() : "VOID_KNIGHT";
-        long clamReward = switch (bossType.toUpperCase()) {
+        double gsFactor = instance.getGearScoreFactor();
+
+        long clamReward = (long) (switch (bossType.toUpperCase()) {
             case "CORAL_QUEEN" -> 1500;
             case "ABYSSAL_TITAN" -> 3000;
             default -> 1000;
-        };
-        long pearlReward = switch (bossType.toUpperCase()) {
+        } * gsFactor);
+
+        long pearlReward = (long) (switch (bossType.toUpperCase()) {
             case "CORAL_QUEEN" -> 15;
             case "ABYSSAL_TITAN" -> 30;
             default -> 10;
-        };
+        } * gsFactor);
 
         for (UUID participant : instance.getParticipants()) {
             economyAPI.addClam(participant, clamReward);
             economyAPI.addPearl(participant, pearlReward);
-            economyAPI.addRep(participant, 50);
+            economyAPI.addRep(participant, (int)(50 * gsFactor));
             Player player = Bukkit.getPlayer(participant);
             if (player != null) {
                 player.sendTitle("§a[보스 처치]", "§f" + stripColor(instance.getEntity().getCustomName()) + "§f을(를) 쓰러뜨렸습니다!", 10, 70, 20);
+                player.sendMessage("§e[보상 수령] §f기어 스코어 보정 배율 (§b" + String.format("%.2f", gsFactor) + "x§f)로 조개 §a" + clamReward + "개§f, 진주 §d" + pearlReward + "개§f를 획득했습니다.");
                 BountyManager bm = Bukkit.getServicesManager().load(BountyManager.class);
                 if (bm != null) {
                     bm.onBossKill(player);
@@ -157,9 +186,22 @@ public final class BossFightManager {
                 // Drop custom items at the player's location
                 if (itemFactory != null) {
                     try {
-                        player.getWorld().dropItemNaturally(player.getLocation(), itemFactory.create("void_crystal"));
+                        int crystalCount = (int) Math.round(1 * gsFactor);
+                        for (int i = 0; i < Math.max(1, crystalCount); i++) {
+                            player.getWorld().dropItemNaturally(player.getLocation(), itemFactory.create("void_crystal"));
+                        }
+
                         if (bossType.equalsIgnoreCase("ABYSSAL_TITAN")) {
-                            player.getWorld().dropItemNaturally(player.getLocation(), itemFactory.create("abyssal_core"));
+                            int coreCount = (int) Math.round(1 * gsFactor);
+                            for (int i = 0; i < Math.max(1, coreCount); i++) {
+                                player.getWorld().dropItemNaturally(player.getLocation(), itemFactory.create("abyssal_core"));
+                            }
+                        }
+
+                        // High GearScore bonus loot
+                        if (gsFactor >= 1.5) {
+                            player.getWorld().dropItemNaturally(player.getLocation(), itemFactory.create("shadow_heart"));
+                            player.sendMessage("§d✨ 고스펙 보너스 전리품으로 [그림자 심장] 1개를 추가 획득했습니다!");
                         }
                     } catch (Exception ignored) {}
                 }
@@ -176,6 +218,8 @@ public final class BossFightManager {
                 continue;
             }
 
+            steerDragonIfApplicable(instance);
+
             var maxHealthAttribute = entity.getAttribute(Attribute.GENERIC_MAX_HEALTH);
             double maxHp = maxHealthAttribute != null ? maxHealthAttribute.getValue() : BASE_HP;
             double ratio = entity.getHealth() / maxHp;
@@ -184,6 +228,15 @@ public final class BossFightManager {
                 instance.setPhase(2);
                 entity.getWorld().strikeLightningEffect(entity.getLocation());
                 Bukkit.broadcastMessage("§4" + stripColor(entity.getCustomName()) + "§4이(가) 2페이즈에 돌입합니다!");
+
+                // Activate dynamic multi-hit shield for high GearScore fight
+                if (instance.getGearScoreFactor() >= 1.5 && !instance.isShieldTriggered()) {
+                    instance.setShieldActive(true);
+                    instance.setShieldTriggered(true);
+                    instance.setShieldHitsLeft(15);
+                    Bukkit.broadcastMessage("§5§l[보호막 기믹] §c공허 보호막이 발동했습니다! §f(보스의 모든 피해 면역, 타격 15회 필요)");
+                    entity.getWorld().playSound(entity.getLocation(), org.bukkit.Sound.BLOCK_BEACON_ACTIVATE, 1.5f, 0.5f);
+                }
             }
 
             if (instance.getElapsedSeconds() > ENRAGE_SECONDS && !instance.isEnraged()) {
@@ -191,6 +244,11 @@ public final class BossFightManager {
                 entity.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, Integer.MAX_VALUE, 1));
                 entity.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, Integer.MAX_VALUE, 1));
                 Bukkit.broadcastMessage("§4§l[격노] §c" + stripColor(entity.getCustomName()) + "§c이(가) 격노했습니다!");
+            }
+
+            // High GS extra gimmick: Void lightning storm
+            if (instance.getGearScoreFactor() >= 1.5 && patternCounter % 12 == 0) {
+                spawnVoidLightning(instance);
             }
 
             if (patternCounter % 5 == 0) {
@@ -201,12 +259,84 @@ public final class BossFightManager {
                         else coralQueenSummonPattern(entity);
                     }
                     case "ABYSSAL_TITAN" -> {
-                        if (instance.getPhase() == 1) pullPattern(entity);
-                        else abyssalTitanRagePattern(entity);
+                        // EnderDragon Dive Attack every 25 seconds
+                        if (patternCounter % 25 == 0) {
+                            abyssalTitanDivePattern(entity);
+                        } else {
+                            if (instance.getPhase() == 1) pullPattern(entity);
+                            else abyssalTitanRagePattern(entity);
+                        }
                     }
                     default -> {
                         if (instance.getPhase() == 1) pullPattern(entity);
                         else blockExplosionPattern(entity);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Vanilla EnderDragon AI is driven by an internal "dragon fight" controller that only
+     * really exists in The End (tracking a portal, crystals, a fixed circling path) — summoned
+     * standalone here, it defaults to passive holding-pattern phases and just wanders off in
+     * straight lines. EnderDragon isn't a {@code Mob}, so there's no setTarget()/setAI() to hook;
+     * the reliable fix is to keep forcing it back into a player-seeking combat phase, and let
+     * vanilla's own flight/collision code (which already knows how to path at a player) do the
+     * rest inside the now-fully-enclosed arena.
+     * Also pulls or teleports the dragon back to the arena center if it flies too far away.
+     */
+    private void steerDragonIfApplicable(BossInstance instance) {
+        LivingEntity entity = instance.getEntity();
+        if (!(entity instanceof org.bukkit.entity.EnderDragon dragon)) {
+            return;
+        }
+
+        var phase = dragon.getPhase();
+        if (phase != org.bukkit.entity.EnderDragon.Phase.CHARGE_PLAYER && phase != org.bukkit.entity.EnderDragon.Phase.HOVER) {
+            dragon.setPhase(org.bukkit.entity.EnderDragon.Phase.CHARGE_PLAYER);
+        }
+
+        // Enforce arena boundaries
+        org.bukkit.Location spawnLoc = instance.getSpawnLocation();
+        if (spawnLoc != null && spawnLoc.getWorld() != null) {
+            double distance = dragon.getLocation().distance(spawnLoc);
+            if (distance > 9.0) {
+                // Sphere boundary collision: Bounce back to center
+                Vector toCenter = spawnLoc.toVector().subtract(dragon.getLocation().toVector()).normalize();
+                Vector currentVel = dragon.getVelocity();
+                Vector bounce = currentVel.multiply(-0.3).add(toCenter.multiply(0.7));
+                dragon.setVelocity(bounce);
+
+                if (distance > 16.0) {
+                    dragon.teleport(spawnLoc.clone().add(0, 2, 0));
+                    dragon.setVelocity(new Vector(0, 0, 0));
+                }
+            } else {
+                // Find closest target player in the arena
+                Player target = null;
+                double minDist = Double.MAX_VALUE;
+                for (var nearby : dragon.getWorld().getNearbyEntities(dragon.getLocation(), 20, 20, 20)) {
+                    if (nearby instanceof Player p) {
+                        double d = p.getLocation().distance(dragon.getLocation());
+                        if (d < minDist) {
+                            minDist = d;
+                            target = p;
+                        }
+                    }
+                }
+                if (target != null) {
+                    // Flight interpolation LERP
+                    Vector toPlayer = target.getLocation().toVector().subtract(dragon.getLocation().toVector()).normalize().multiply(0.35);
+                    Vector currentVel = dragon.getVelocity();
+                    Vector newVel = currentVel.multiply(0.85).add(toPlayer.multiply(0.15));
+                    dragon.setVelocity(newVel);
+
+                    // Yaw/Pitch rotation
+                    Vector dir = target.getLocation().toVector().subtract(dragon.getLocation().toVector());
+                    if (dir.lengthSquared() > 0.01) {
+                        org.bukkit.Location lookLoc = dragon.getLocation().setDirection(dir);
+                        dragon.setRotation(lookLoc.getYaw(), lookLoc.getPitch());
                     }
                 }
             }
@@ -268,6 +398,94 @@ public final class BossFightManager {
             }
         }
         boss.getWorld().playSound(boss.getLocation(), org.bukkit.Sound.ENTITY_WITHER_DEATH, 0.5f, 0.3f);
+    }
+
+    /** ABYSSAL_TITAN: Dive Attack Pattern */
+    private void abyssalTitanDivePattern(LivingEntity boss) {
+        if (!(boss instanceof org.bukkit.entity.EnderDragon dragon)) return;
+        Player target = null;
+        double minDist = Double.MAX_VALUE;
+        for (var nearby : boss.getWorld().getNearbyEntities(boss.getLocation(), 25, 25, 25)) {
+            if (nearby instanceof Player p) {
+                double d = p.getLocation().distance(boss.getLocation());
+                if (d < minDist) {
+                    minDist = d;
+                    target = p;
+                }
+            }
+        }
+        if (target == null) return;
+
+        final org.bukkit.Location targetLoc = target.getLocation().clone();
+
+        // 1. Rise up
+        dragon.teleport(dragon.getLocation().clone().add(0, 6, 0));
+        dragon.setVelocity(new Vector(0, 0, 0));
+        dragon.getWorld().playSound(dragon.getLocation(), org.bukkit.Sound.ENTITY_ENDER_DRAGON_GROWL, 1.2f, 0.7f);
+        Bukkit.broadcastMessage("§5[심연의 거신] §c심연의 거신이 급강하 공격을 준비합니다!");
+
+        // 2. Dive down after 30 ticks
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!dragon.isValid() || dragon.isDead()) return;
+            Vector diveVec = targetLoc.toVector().subtract(dragon.getLocation().toVector()).normalize().multiply(1.5);
+            dragon.setVelocity(diveVec);
+
+            // Apply crash effect after 10 ticks
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!dragon.isValid() || dragon.isDead()) return;
+                dragon.teleport(targetLoc);
+                dragon.setVelocity(new Vector(0, 0, 0));
+                dragon.getWorld().createExplosion(targetLoc, 0.0f, false, false);
+                dragon.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION, targetLoc, 20, 1.0, 1.0, 1.0, 0.2);
+                dragon.getWorld().playSound(targetLoc, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.8f);
+
+                for (var nearby : dragon.getWorld().getNearbyEntities(targetLoc, 5, 5, 5)) {
+                    if (nearby instanceof Player p) {
+                        p.damage(8.0, dragon);
+                        Vector knockback = p.getLocation().toVector().subtract(targetLoc.toVector()).normalize().multiply(1.2).setY(0.5);
+                        p.setVelocity(knockback);
+                        p.sendMessage("§c심연의 거신의 급강하 충격파에 휩쓸렸습니다!");
+                    }
+                }
+            }, 10L);
+        }, 30L);
+    }
+
+    /** High GS extra gimmick: Void lightning storm */
+    private void spawnVoidLightning(BossInstance instance) {
+        LivingEntity boss = instance.getEntity();
+        List<Player> players = new java.util.ArrayList<>();
+        for (var nearby : boss.getWorld().getNearbyEntities(boss.getLocation(), 25, 25, 25)) {
+            if (nearby instanceof Player p) {
+                players.add(p);
+            }
+        }
+        if (players.isEmpty()) return;
+
+        Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
+        org.bukkit.Location targetLoc = target.getLocation().clone();
+
+        Bukkit.getScheduler().runTaskTimer(plugin, new java.util.function.Consumer<org.bukkit.scheduler.BukkitTask>() {
+            int elapsed = 0;
+            @Override
+            public void accept(org.bukkit.scheduler.BukkitTask task) {
+                if (elapsed >= 8) {
+                    task.cancel();
+                    if (boss.isValid() && !boss.isDead()) {
+                        targetLoc.getWorld().strikeLightningEffect(targetLoc);
+                        for (var nearby : targetLoc.getWorld().getNearbyEntities(targetLoc, 3.0, 3.0, 3.0)) {
+                            if (nearby instanceof Player p) {
+                                p.damage(5.0 * instance.getGearScoreFactor(), boss);
+                                p.sendMessage("§5[공허 번개] §c바닥의 공허 벼락을 피하지 못했습니다!");
+                            }
+                        }
+                    }
+                    return;
+                }
+                targetLoc.getWorld().spawnParticle(org.bukkit.Particle.SMOKE, targetLoc, 15, 0.5, 0.1, 0.5, 0.05);
+                elapsed++;
+            }
+        }, 0L, 5L);
     }
 
     private static String stripColor(String s) {

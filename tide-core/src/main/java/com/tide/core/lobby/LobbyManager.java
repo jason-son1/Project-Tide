@@ -425,9 +425,15 @@ public class LobbyManager {
         if (state instanceof org.bukkit.block.Sign sign) {
             sign.setLine(0, "§9§l[스폰지점으로]");
             sign.setLine(1, "§0우클릭 또는");
-            sign.setLine(2, "§0아래 버튼을");
-            sign.setLine(3, "§0클릭하세요!");
+            sign.setLine(2, "§0아래 버튼 클릭");
+            sign.setLine(3, "§0또는 유리 통과");
             sign.update();
+        }
+
+        // Escape portal floor blocks
+        for (int dx = -1; dx <= 1; dx++) {
+            world.getBlockAt(cx + dx, cy, cz - 11).setType(Material.LIGHT_BLUE_STAINED_GLASS);
+            world.getBlockAt(cx + dx, cy - 1, cz - 11).setType(Material.SEA_LANTERN);
         }
     }
 

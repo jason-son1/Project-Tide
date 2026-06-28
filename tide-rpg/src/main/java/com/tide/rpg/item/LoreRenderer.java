@@ -45,14 +45,51 @@ public final class LoreRenderer {
         int socketCount = pdc.getOrDefault(TideKeys.SOCKET_COUNT, org.bukkit.persistence.PersistentDataType.INTEGER, 0);
         int tier = definition != null ? definition.getTier() : 1;
 
+        int baseDmg = definition != null ? definition.getBaseDamage() : 0;
+        int baseDef = definition != null ? definition.getBaseDefense() : 0;
+        double dmgPerStar = definition != null ? definition.getDamagePerStar() : 0;
+        double defPerStar = definition != null ? definition.getDefensePerStar() : 0;
+
+        double currentDmg = baseDmg + reinforce * dmgPerStar;
+        double currentDef = baseDef + reinforce * defPerStar;
+        double addedDmg = reinforce * dmgPerStar;
+        double addedDef = reinforce * defPerStar;
+
+        String dmgDisplay = formatValue(baseDmg);
+        if (reinforce > 0 && dmgPerStar > 0) {
+            dmgDisplay = formatValue(currentDmg) + " §7(기본 " + formatValue(baseDmg) + " §a+" + formatValue(addedDmg) + "§7)";
+        }
+        String defDisplay = formatValue(baseDef);
+        if (reinforce > 0 && defPerStar > 0) {
+            defDisplay = formatValue(currentDef) + " §7(기본 " + formatValue(baseDef) + " §a+" + formatValue(addedDef) + "§7)";
+        }
+
         String socketDisplay = buildSocketDisplay(pdc, socketCount);
 
         List<String> lore = new ArrayList<>();
         List<String> template = definition != null ? definition.getLoreTemplate() : List.of();
+        
+        boolean templateHasDamage = false;
+        boolean templateHasDefense = false;
+        for (String line : template) {
+            if (line.contains("{damage") || line.contains("{damage_display}")) {
+                templateHasDamage = true;
+            }
+            if (line.contains("{defense") || line.contains("{defense_display}")) {
+                templateHasDefense = true;
+            }
+        }
+
         if (template.isEmpty()) {
             lore.add("§7등급: §fTier " + tier);
             lore.add("§6전투력(GS): §f" + gs);
             lore.add("§7강화: §a+" + reinforce);
+            if (baseDmg > 0) {
+                lore.add("§7공격력: §f" + dmgDisplay);
+            }
+            if (baseDef > 0) {
+                lore.add("§7방어력: §f" + defDisplay);
+            }
             lore.add("§7소켓: " + socketDisplay);
         } else {
             for (String line : template) {
@@ -60,7 +97,37 @@ public final class LoreRenderer {
                         .replace("{tier}", String.valueOf(tier))
                         .replace("{gs}", String.valueOf(gs))
                         .replace("{reinforce}", String.valueOf(reinforce))
-                        .replace("{socket_display}", socketDisplay));
+                        .replace("{socket_display}", socketDisplay)
+                        .replace("{damage}", formatValue(currentDmg))
+                        .replace("{defense}", formatValue(currentDef))
+                        .replace("{damage_bonus}", formatValue(addedDmg))
+                        .replace("{defense_bonus}", formatValue(addedDef))
+                        .replace("{damage_display}", dmgDisplay)
+                        .replace("{defense_display}", defDisplay));
+            }
+
+            int insertIndex = -1;
+            for (int i = 0; i < lore.size(); i++) {
+                if (lore.get(i).contains("강화:") || lore.get(i).contains("+" + reinforce)) {
+                    insertIndex = i + 1;
+                    break;
+                }
+            }
+
+            if (baseDmg > 0 && !templateHasDamage) {
+                if (insertIndex != -1 && insertIndex <= lore.size()) {
+                    lore.add(insertIndex, "§7공격력: §f" + dmgDisplay);
+                    insertIndex++;
+                } else {
+                    lore.add("§7공격력: §f" + dmgDisplay);
+                }
+            }
+            if (baseDef > 0 && !templateHasDefense) {
+                if (insertIndex != -1 && insertIndex <= lore.size()) {
+                    lore.add(insertIndex, "§7방어력: §f" + defDisplay);
+                } else {
+                    lore.add("§7방어력: §f" + defDisplay);
+                }
             }
         }
 
@@ -104,5 +171,13 @@ public final class LoreRenderer {
         String roman = grade >= 1 && grade < ROMAN.length ? ROMAN[grade] : String.valueOf(grade);
         String name = runeDefinition != null ? runeDefinition.getDisplayName() : "§f" + type + " " + roman;
         return "[" + name + "§r]";
+    }
+
+    private String formatValue(double val) {
+        if (val == (long) val) {
+            return String.format("%d", (long) val);
+        } else {
+            return String.format("%.1f", val);
+        }
     }
 }

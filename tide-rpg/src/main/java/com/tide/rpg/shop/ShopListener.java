@@ -112,7 +112,13 @@ public final class ShopListener implements Listener {
 
             removeInventoryItems(player, entry, amountToSell, shopGUI);
 
-            long reward = entry.price() * amountToSell;
+            double sellBonus = 1.0;
+            com.tide.core.difficulty.DifficultyManager difficultyManager =
+                    org.bukkit.Bukkit.getServicesManager().load(com.tide.core.difficulty.DifficultyManager.class);
+            if (difficultyManager != null) {
+                sellBonus = difficultyManager.sellBonusMultiplier(player.getUniqueId());
+            }
+            long reward = Math.round(entry.price() * amountToSell * sellBonus);
             if (entry.currency() == ShopEntry.Currency.CLAM) {
                 economyAPI.addClam(player.getUniqueId(), reward);
                 player.sendMessage("§a아이템 §f" + amountToSell + "개§a를 판매하여 §6조개 " + reward + "개§a를 획득했습니다.");

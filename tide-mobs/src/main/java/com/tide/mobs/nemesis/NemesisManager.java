@@ -160,8 +160,20 @@ public final class NemesisManager {
         } else {
             mob.setGlowing(true);
         }
-        mob.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, Integer.MAX_VALUE, 1));
-        mob.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, Integer.MAX_VALUE, 0));
+        // Nemesis Escalation (Dynamic World Difficulty Scaling spec 3-1): T2+ brackets
+        // awaken with stronger buffs (Strength III/Speed II) than the T1 baseline.
+        int strengthAmplifier = 1;
+        int speedAmplifier = 0;
+        var difficultyManager = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.difficulty.DifficultyManager.class);
+        if (difficultyManager != null && difficultyManager.isEnabled()) {
+            String bracketId = difficultyManager.resolve(mob.getLocation()).bracket().id();
+            if (!"t1".equalsIgnoreCase(bracketId)) {
+                strengthAmplifier = 2;
+                speedAmplifier = 1;
+            }
+        }
+        mob.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, Integer.MAX_VALUE, strengthAmplifier));
+        mob.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, Integer.MAX_VALUE, speedAmplifier));
 
         com.tide.core.effect.EffectEngine effectEngine = org.bukkit.Bukkit.getServicesManager().load(com.tide.core.effect.EffectEngine.class);
         if (effectEngine != null) {

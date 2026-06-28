@@ -19,4 +19,7 @@ commands:
   codex:
     description: 아이템 도감을 엽니다.
     usage: /codex
+  power:
+    description: 현재 장비 전투력(GS), 최고 기록, 진행 지표(PI), 현재 위치의 월드 난이도를 확인합니다.
+    usage: /power
 

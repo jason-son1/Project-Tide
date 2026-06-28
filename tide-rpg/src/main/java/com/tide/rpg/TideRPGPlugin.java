@@ -95,6 +95,7 @@ public final class TideRPGPlugin extends JavaPlugin {
     private BioluminescentManager bioluminescentManager;
     private GateRegistry gateRegistry;
     private CodexGUI codexGUI;
+    private com.tide.rpg.codex.RuneCodexGUI runeCodexGUI;
 
     @Override
     public void onEnable() {
@@ -128,6 +129,7 @@ public final class TideRPGPlugin extends JavaPlugin {
         this.forgeGUI = new ForgeGUI();
         this.forgeConfig = new ForgeConfig(this);
         this.codexGUI = new CodexGUI(itemRegistry, itemFactory);
+        this.runeCodexGUI = new com.tide.rpg.codex.RuneCodexGUI(runeRegistry, runeItemFactory);
         this.gearScoreCalculator = new GearScoreCalculator(forgeConfig.gsPerReinforceStar());
 
         // Exposed so TideMobs can grant Tide items (e.g. soul fragments) on elite kills
@@ -139,17 +141,20 @@ public final class TideRPGPlugin extends JavaPlugin {
         RuneEffectDispatcher dispatcher = new RuneEffectDispatcher(tideStateProvider);
         getServer().getPluginManager().registerEvents(new CombatListener(dispatcher), this);
         getServer().getPluginManager().registerEvents(new DefensiveListener(dispatcher), this);
+        getServer().getPluginManager().registerEvents(new com.tide.rpg.combat.ArmorMitigationListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopListener(economyAPI, itemFactory, runeItemFactory, shopGUI), this);
         getServer().getPluginManager().registerEvents(
                 new ForgeListener(economyAPI, loreRenderer, runeRegistry, runeItemFactory, forgeGUI, forgeConfig, itemRegistry), this);
         getServer().getPluginManager().registerEvents(
                 new ZoneGuardListener(zoneRegistry, gearScoreCalculator), this);
         getServer().getPluginManager().registerEvents(
+                new com.tide.rpg.gs.PeakGearScoreListener(gearScoreCalculator, economyAPI), this);
+        getServer().getPluginManager().registerEvents(
                 new FishingQteListener(fishingHoleRegistry, economyAPI), this);
         getServer().getPluginManager().registerEvents(new TideBellListener(), this);
         getServer().getPluginManager().registerEvents(new TideVaultListener(itemFactory), this);
         getServer().getPluginManager().registerEvents(new com.tide.rpg.item.FunctionalItemListener(this), this);
-        getServer().getPluginManager().registerEvents(new CodexListener(codexGUI), this);
+        getServer().getPluginManager().registerEvents(new CodexListener(codexGUI, runeCodexGUI), this);
 
         // 심화 확장 기능 백서 Phase 1: Tide Resonance Set + Tidal Overdrive + Tidal Currents
         getServer().getPluginManager().registerEvents(new ResonanceListener(tideStateProvider), this);
@@ -187,6 +192,7 @@ public final class TideRPGPlugin extends JavaPlugin {
         getCommand("deepmine").setExecutor(deepMineCommand);
         getCommand("deepmine").setTabCompleter(deepMineCommand);
         getCommand("codex").setExecutor(this);
+        getCommand("power").setExecutor(this);
 
         getLogger().info("TideRPG enabled. 아이템 " + itemRegistry.getAll().size()
                 + "개, 룬 " + runeRegistry.getAll().size() + "개, 구역 " + "로드 완료.");
@@ -219,6 +225,7 @@ public final class TideRPGPlugin extends JavaPlugin {
         this.deepMineRegistry = new com.tide.rpg.deepmine.DeepMineManagerRegistry(this, itemFactory, runeItemFactory);
         deepMineRegistry.start();
         getServer().getPluginManager().registerEvents(new DeepMineListener(deepMineRegistry, this), this);
+        getServer().getPluginManager().registerEvents(new com.tide.rpg.deepmine.DeepMineWorldGenListener(this, deepMineRegistry), this);
     }
 
     @Override
@@ -231,11 +238,43 @@ public final class TideRPGPlugin extends JavaPlugin {
             case "shop" -> shopGUI.open(player);
             case "forge" -> forgeGUI.open(player);
             case "codex" -> codexGUI.open(player);
+            case "power" -> showPower(player);
             default -> {
                 return false;
             }
         }
         return true;
+    }
+
+    private void showPower(Player player) {
+        EconomyAPI economyAPI = lookupService(EconomyAPI.class);
+        if (economyAPI == null) {
+            player.sendMessage("§c전투력 정보를 불러올 수 없습니다.");
+            return;
+        }
+        int currentGs = gearScoreCalculator.calculate(player);
+        int peakGs = economyAPI.getPeakGearScore(player.getUniqueId());
+        int rep = economyAPI.getRep(player.getUniqueId());
+        double pi = economyAPI.getProgressionIndex(player.getUniqueId());
+
+        player.sendMessage("§b§l⚔ " + player.getName() + "님의 전투력");
+        player.sendMessage("§7• 현재 장비 전투력(GS): §f" + currentGs
+                + (currentGs < peakGs ? " §8(최고 기록 §f" + peakGs + "§8)" : ""));
+        player.sendMessage("§7• 평판(명성): §f" + rep + " §8| §7진행 지표(PI): §f" + String.format("%.1f", pi));
+
+        com.tide.core.difficulty.DifficultyManager difficultyManager =
+                lookupService(com.tide.core.difficulty.DifficultyManager.class);
+        if (difficultyManager != null && difficultyManager.isEnabled()) {
+            var result = difficultyManager.resolve(player.getLocation());
+            player.sendMessage("§7• 현재 위치 난이도 등급: §e" + result.bracket().id().toUpperCase());
+            player.sendMessage("§7• 적용 중인 몹 체력 배율: §cx" + String.format("%.2f", result.hpMultiplier())
+                    + " §7| 몹 공격력 배율: §cx" + String.format("%.2f", result.dmgMultiplier()));
+        }
+
+        var armorAttribute = player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_ARMOR);
+        if (armorAttribute != null) {
+            player.sendMessage("§7• 방어구 방어도: §f" + String.format("%.1f", armorAttribute.getValue()));
+        }
     }
 
     private void extractBundledSamples() {

@@ -63,6 +63,18 @@ public final class DeepMineListener implements Listener {
         manager.onDeathInside(player);
     }
 
+    private boolean isPortalArmorStandNearby(Location loc) {
+        if (loc.getWorld() == null) return false;
+        for (org.bukkit.entity.Entity entity : loc.getWorld().getNearbyEntities(loc, 2, 2, 2)) {
+            if (entity instanceof org.bukkit.entity.ArmorStand as) {
+                if (as.getCustomName() != null && as.getCustomName().contains("심해 광산 통로")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         if (event.getClickedBlock() == null) {
@@ -72,12 +84,24 @@ public final class DeepMineListener implements Listener {
         Player player = event.getPlayer();
 
         // 1. Portal entrance right-click
-        for (DeepMineManager candidate : registry.getAll()) {
-            if (event.getAction() == Action.RIGHT_CLICK_BLOCK && candidate.getActivePortals().containsKey(block)) {
-                event.setCancelled(true);
-                candidate.enter(player);
-                return;
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && block.getType() == Material.CRYING_OBSIDIAN) {
+            boolean isTriggeredPortal = false;
+            for (DeepMineManager candidate : registry.getAll()) {
+                if (candidate.getActivePortals().containsKey(block)) {
+                    isTriggeredPortal = true;
+                    event.setCancelled(true);
+                    candidate.enter(player);
+                    break;
+                }
             }
+            if (!isTriggeredPortal && isPortalArmorStandNearby(block.getLocation())) {
+                DeepMineManager nearest = registry.nearest(block.getLocation());
+                if (nearest != null) {
+                    event.setCancelled(true);
+                    nearest.enter(player);
+                }
+            }
+            return;
         }
 
         DeepMineManager manager = registry.findContaining(block.getLocation());

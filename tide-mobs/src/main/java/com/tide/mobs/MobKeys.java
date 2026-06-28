@@ -17,4 +17,7 @@ public final class MobKeys {
     public static final NamespacedKey STOLEN_FROM = new NamespacedKey("tide", "stolen_from");
     /** PDC key written by CustomMobSpawnListener to identify a custom mob. */
     public static final NamespacedKey CUSTOM_MOB_ID = new NamespacedKey("tide", "force_custom_mob_id");
+    /** Last World-Difficulty-Multiplier applied to this entity, so periodic refresh can undo+reapply without compounding. */
+    public static final NamespacedKey WDM_HP_MULT = new NamespacedKey("tide", "wdm_hp_mult");
+    public static final NamespacedKey WDM_DMG_MULT = new NamespacedKey("tide", "wdm_dmg_mult");
 }

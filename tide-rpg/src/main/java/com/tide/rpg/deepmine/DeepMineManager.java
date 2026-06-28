@@ -21,6 +21,7 @@ import com.tide.rpg.item.ItemFactory;
 import com.tide.rpg.rune.RuneItemFactory;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -344,6 +345,83 @@ public final class DeepMineManager {
         }
     }
 
+    /** Vertical ladder well between two Y "stops" (the entrance or a layer's junction-room
+     *  floor), always at the same fixed (x,z) column so it lines up with the junction room
+     *  carved at every stop. A water landing pad sits at the bottom of each segment so dropping
+     *  down the shaft doesn't cost fall damage. */
+    private void carveJunctionShaft(Material[][][] blocks, int x, int z, int topIdx, int bottomIdx) {
+        for (int y = bottomIdx; y <= topIdx; y++) {
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    int lx = x + dx;
+                    int lz = z + dz;
+                    if (Math.abs(dx) == 2 && Math.abs(dz) == 2) {
+                        setBlock(blocks, lx, y, lz, Material.STRIPPED_DARK_OAK_LOG);
+                        continue;
+                    }
+                    if (y == bottomIdx) {
+                        if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
+                            setBlock(blocks, lx, y, lz, Material.WATER);
+                        } else {
+                            setBlock(blocks, lx, y, lz, Material.POLISHED_DEEPSLATE);
+                        }
+                    } else if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
+                        setBlock(blocks, lx, y, lz, Material.AIR);
+                        if (dz == -1 && dx == 0) {
+                            setBlock(blocks, lx, y, lz, Material.LADDER);
+                        }
+                    } else if (dx == -2 || dx == 2 || dz == -2 || dz == 2) {
+                        setBlock(blocks, lx, y, lz, Material.IRON_BARS);
+                    }
+                }
+            }
+        }
+    }
+
+    /** One leg of an L-shaped corridor connecting the fixed junction column to the nearest
+     *  generated room on the same layer — same floor/wall/ceiling styling as the regular
+     *  grid-to-grid corridors, generalized to an arbitrary start/end column instead of fixed
+     *  neighboring grid cells. */
+    private void carveCorridorSegmentX(Material[][][] blocks, int x1, int x2, int z, int layerYIdx, int realLayerY, boolean isDeep) {
+        int from = Math.min(x1, x2);
+        int to = Math.max(x1, x2);
+        for (int x = from; x <= to; x++) {
+            for (int dy = 0; dy < 4; dy++) {
+                int ly = layerYIdx + dy;
+                for (int dz = -2; dz <= 2; dz++) {
+                    int lz = z + dz;
+                    if (dy == 0) {
+                        setBlock(blocks, x, ly, lz, rollCorridorFloor(realLayerY));
+                    } else if (dz == -2 || dz == 2) {
+                        setBlock(blocks, x, ly, lz, isDeep ? Material.DEEPSLATE_BRICKS : Material.STONE_BRICKS);
+                    } else {
+                        setBlock(blocks, x, ly, lz, Material.AIR);
+                    }
+                }
+            }
+        }
+    }
+
+    private void carveCorridorSegmentZ(Material[][][] blocks, int x, int z1, int z2, int layerYIdx, int realLayerY, boolean isDeep) {
+        int from = Math.min(z1, z2);
+        int to = Math.max(z1, z2);
+        for (int z = from; z <= to; z++) {
+            for (int dy = 0; dy < 4; dy++) {
+                int ly = layerYIdx + dy;
+                for (int dx = -2; dx <= 2; dx++) {
+                    int lx = x + dx;
+                    if (dy == 0) {
+                        setBlock(blocks, lx, ly, z, rollCorridorFloor(realLayerY));
+                    } else if (dx == -2 || dx == 2) {
+                        setBlock(blocks, lx, ly, z, isDeep ? Material.DEEPSLATE_BRICKS : Material.STONE_BRICKS);
+                    } else {
+                        setBlock(blocks, lx, ly, z, Material.AIR);
+                    }
+                }
+            }
+        }
+    }
+
     private Material rollCorridorFloor(int realY) {
         double r = ThreadLocalRandom.current().nextDouble();
         if (realY < 0) {
@@ -575,6 +653,15 @@ public final class DeepMineManager {
             cellCentersZ[i] = 10 + (stepZ / 2) + (i * stepZ);
         }
 
+        // Fixed lobby/shaft column shared by the entrance and every layer below it, so the
+        // vertical connector always has a guaranteed room to land in instead of hoping the
+        // entrance's column happens to line up with a randomly-rolled grid cell (it usually
+        // doesn't, which is why entrances and inter-layer shafts used to dead-end in raw stone).
+        final int JUNCTION_RADIUS = 4;
+        final int JUNCTION_HEIGHT = 6;
+        final int junctionX = Math.max(JUNCTION_RADIUS + 3, Math.min(width - JUNCTION_RADIUS - 4, entXIdx));
+        final int junctionZ = Math.max(JUNCTION_RADIUS + 3, Math.min(depth - JUNCTION_RADIUS - 4, entZIdx));
+
         for (int layer = 0; layer < layersY.length; layer++) {
             int realLayerY = layersY[layer];
             int layerYIdx = realLayerY - minY;
@@ -803,6 +890,28 @@ public final class DeepMineManager {
                 }
             }
 
+            // Guaranteed junction room at the fixed shaft column on every layer, then a
+            // corridor out to whichever generated room ended up closest — without this, a
+            // layer that happened to roll "no room" at the shaft's grid cell (or simply wasn't
+            // aligned with one) left the vertical connector dead-ending in solid stone.
+            carveBaseRoom(blocks, junctionX, junctionZ, layerYIdx, JUNCTION_RADIUS, JUNCTION_RADIUS, JUNCTION_HEIGHT, isDeep);
+            int nearestR = -1, nearestC = -1, nearestDist = Integer.MAX_VALUE;
+            for (int r = 0; r < gridSize; r++) {
+                for (int c = 0; c < gridSize; c++) {
+                    if (!hasRoom[r][c]) continue;
+                    int dist = Math.abs(cellCentersX[c] - junctionX) + Math.abs(cellCentersZ[r] - junctionZ);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestR = r;
+                        nearestC = c;
+                    }
+                }
+            }
+            if (nearestR != -1) {
+                carveCorridorSegmentX(blocks, junctionX, cellCentersX[nearestC], junctionZ, layerYIdx, realLayerY, isDeep);
+                carveCorridorSegmentZ(blocks, cellCentersX[nearestC], junctionZ, cellCentersZ[nearestR], layerYIdx, realLayerY, isDeep);
+            }
+
             for (int r = 0; r < gridSize; r++) {
                 for (int c = 0; c < gridSize; c++) {
                     if (hasRoom[r][c]) {
@@ -914,97 +1023,21 @@ public final class DeepMineManager {
                 }
             }
 
-            if (layer > 0) {
-                int sr = -1, sc = -1;
-                for (int r = 0; r < gridSize; r++) {
-                    for (int c = 0; c < gridSize; c++) {
-                        if (hasRoom[r][c]) {
-                            sr = r;
-                            sc = c;
-                            break;
-                        }
-                    }
-                    if (sr != -1) break;
-                }
-
-                if (sr != -1) {
-                    int cx = cellCentersX[sc];
-                    int cz = cellCentersZ[sr];
-                    int belowY = layersY[layer - 1];
-                    int belowYIdx = belowY - minY;
-
-                    for (int y = belowYIdx; y <= layerYIdx; y++) {
-                        for (int dx = -2; dx <= 2; dx++) {
-                            for (int dz = -2; dz <= 2; dz++) {
-                                int lx = cx + dx;
-                                int ly = y;
-                                int lz = cz + dz;
-                                
-                                if (Math.abs(dx) == 2 && Math.abs(dz) == 2) {
-                                    setBlock(blocks, lx, ly, lz, Material.STRIPPED_DARK_OAK_LOG);
-                                    continue;
-                                }
-                                
-                                if (y == belowYIdx) {
-                                    if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
-                                        setBlock(blocks, lx, ly, lz, Material.WATER);
-                                    } else {
-                                        setBlock(blocks, lx, ly, lz, Material.POLISHED_DEEPSLATE);
-                                    }
-                                } else {
-                                    if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
-                                        setBlock(blocks, lx, ly, lz, Material.AIR);
-                                        if (dz == -1 && dx == 0) {
-                                            setBlock(blocks, lx, ly, lz, Material.LADDER);
-                                        }
-                                    } else {
-                                        if (dx == -2 || dx == 2 || dz == -2 || dz == 2) {
-                                            setBlock(blocks, lx, ly, lz, Material.IRON_BARS);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
 
-        int topLayerYIdx = layersY[layersY.length - 1] - minY;
-        for (int y = topLayerYIdx; y <= entYIdx; y++) {
-            for (int dx = -2; dx <= 2; dx++) {
-                for (int dz = -2; dz <= 2; dz++) {
-                    int lx = entXIdx + dx;
-                    int ly = y;
-                    int lz = entZIdx + dz;
-                    
-                    if (lx >= 0 && lx < width && ly >= 0 && ly < height && lz >= 0 && lz < depth) {
-                        if (Math.abs(dx) == 2 && Math.abs(dz) == 2) {
-                            blocks[lx][ly][lz] = Material.STRIPPED_DARK_OAK_LOG;
-                            continue;
-                        }
-                        
-                        if (y == topLayerYIdx) {
-                            if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
-                                blocks[lx][ly][lz] = Material.WATER;
-                            } else {
-                                blocks[lx][ly][lz] = Material.POLISHED_DEEPSLATE;
-                            }
-                        } else {
-                            if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
-                                blocks[lx][ly][lz] = Material.AIR;
-                                if (dz == -1 && dx == 0) {
-                                    blocks[lx][ly][lz] = Material.LADDER;
-                                }
-                            } else {
-                                if (dx == -2 || dx == 2 || dz == -2 || dz == 2) {
-                                    blocks[lx][ly][lz] = Material.IRON_BARS;
-                                }
-                            }
-                        }
-                    }
-                }
+        // One continuous shaft from the entrance down through every layer's junction room, all
+        // at the same fixed (junctionX, junctionZ) column — replaces the old per-layer connector
+        // that picked "whichever grid cell happened to have a room first" and could miss entirely.
+        List<Integer> shaftStops = new ArrayList<>();
+        shaftStops.add(entYIdx);
+        for (int i = layersY.length - 1; i >= 0; i--) {
+            int idx = layersY[i] - minY;
+            if (idx >= 0 && idx < height) {
+                shaftStops.add(idx);
             }
+        }
+        for (int i = 0; i + 1 < shaftStops.size(); i++) {
+            carveJunctionShaft(blocks, junctionX, junctionZ, shaftStops.get(i), shaftStops.get(i + 1));
         }
 
         final int finalHeight = height;

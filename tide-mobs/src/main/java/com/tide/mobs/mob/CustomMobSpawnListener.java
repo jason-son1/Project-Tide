@@ -1,7 +1,10 @@
 package com.tide.mobs.mob;
 
+import com.tide.core.difficulty.DifficultyManager;
+import com.tide.core.difficulty.DifficultyResult;
 import com.tide.core.economy.EconomyAPI;
 import com.tide.core.tide.TideStateProvider;
+import com.tide.mobs.difficulty.WorldDifficultyApplier;
 import com.tide.mobs.affix.EliteProcessor;
 import com.tide.mobs.affix.AffixRegistry;
 import com.tide.mobs.affix.AffixDefinition;
@@ -35,16 +38,18 @@ public final class CustomMobSpawnListener implements Listener {
     private final EliteProcessor eliteProcessor;
     private final ItemFactory itemFactory;
     private final EconomyAPI economyAPI;
+    private final DifficultyManager difficultyManager;
 
     public CustomMobSpawnListener(TideStateProvider stateProvider, MobRegistry mobRegistry,
                                   AffixRegistry affixRegistry, EliteProcessor eliteProcessor,
-                                  ItemFactory itemFactory, EconomyAPI economyAPI) {
+                                  ItemFactory itemFactory, EconomyAPI economyAPI, DifficultyManager difficultyManager) {
         this.stateProvider = stateProvider;
         this.mobRegistry = mobRegistry;
         this.affixRegistry = affixRegistry;
         this.eliteProcessor = eliteProcessor;
         this.itemFactory = itemFactory;
         this.economyAPI = economyAPI;
+        this.difficultyManager = difficultyManager;
     }
 
     private static final NamespacedKey FORCE_CUSTOM_MOB_KEY = new NamespacedKey("tide", "force_custom_mob_id");
@@ -150,27 +155,35 @@ public final class CustomMobSpawnListener implements Listener {
         entity.setCustomName(mob.getDisplayName());
         entity.setCustomNameVisible(true);
 
-        // Apply attributes (HP, Damage, Speed)
-        if (mob.getHpMultiplier() != 1.0) {
-            AttributeInstance hpAttr = entity.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-            if (hpAttr != null) {
-                double newMax = hpAttr.getBaseValue() * mob.getHpMultiplier();
-                hpAttr.setBaseValue(newMax);
-                entity.setHealth(newMax);
-            }
+        // Apply the mob's own authored multipliers first — these become the "unscaled
+        // base" that WorldDifficultyApplier multiplies on top of and can later refresh
+        // without compounding.
+        AttributeInstance hpAttr = entity.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        if (hpAttr != null && mob.getHpMultiplier() != 1.0) {
+            double newMax = hpAttr.getBaseValue() * mob.getHpMultiplier();
+            hpAttr.setBaseValue(newMax);
+            entity.setHealth(newMax);
         }
 
-        if (mob.getDamageMultiplier() != 1.0) {
-            AttributeInstance dmgAttr = entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
-            if (dmgAttr != null) {
-                dmgAttr.setBaseValue(dmgAttr.getBaseValue() * mob.getDamageMultiplier());
-            }
+        AttributeInstance dmgAttr = entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
+        if (dmgAttr != null && mob.getDamageMultiplier() != 1.0) {
+            dmgAttr.setBaseValue(dmgAttr.getBaseValue() * mob.getDamageMultiplier());
+        }
+
+        // World-difficulty multiplier (Dynamic World Difficulty Scaling) — applied on
+        // top, tracked in PDC so the periodic refresh task can keep this mob in sync
+        // with the world's current difficulty without re-stacking the multiplier.
+        if (difficultyManager != null && difficultyManager.isEnabled()) {
+            DifficultyResult difficulty = difficultyManager.resolve(entity.getLocation());
+            WorldDifficultyApplier.apply(entity, difficulty);
         }
 
         if (mob.getMovementSpeed() > 0) {
             AttributeInstance speedAttr = entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED);
             if (speedAttr != null) {
-                speedAttr.setBaseValue(mob.getMovementSpeed());
+                // +35% cap over vanilla default so scaled mobs don't feel like they're teleporting.
+                double cap = speedAttr.getDefaultValue() * 1.35;
+                speedAttr.setBaseValue(Math.min(mob.getMovementSpeed(), cap));
             }
         }
 
@@ -208,6 +221,12 @@ public final class CustomMobSpawnListener implements Listener {
         // Clear default drops
         event.getDrops().clear();
 
+        // 조개/진주 드롭 배율: WDM의 50%만큼 추가 수량 (Dynamic World Difficulty Scaling spec 5장)
+        double dropBonus = 1.0;
+        if (difficultyManager != null && difficultyManager.isEnabled()) {
+            dropBonus = 1.0 + 0.5 * (difficultyManager.resolve(entity.getLocation()).hpMultiplier() - 1.0);
+        }
+
         // Roll and drop custom loot
         Player killer = entity.getKiller();
         for (Map<String, Object> drop : mob.getDrops()) {
@@ -241,6 +260,7 @@ public final class CustomMobSpawnListener implements Listener {
                 }
 
                 if (amount > 0) {
+                    amount = Math.round(amount * dropBonus);
                     if ("clam".equalsIgnoreCase(currency)) {
                         economyAPI.addClam(killer.getUniqueId(), amount);
                         killer.sendMessage("§6+" + amount + " 조개 §7(커스텀 몹 처치 보상)");

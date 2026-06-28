@@ -63,9 +63,10 @@ public final class CodexGUI implements CodexOpener {
         inv.setItem(3, tabButton(Material.CRYING_OBSIDIAN,   "§9딥마인", tab == CodexTab.DEEPMINE));
         inv.setItem(4, tabButton(Material.NETHER_STAR,       "§5보스",   tab == CodexTab.BOSS));
 
-        // ── 필러 / 가이드로 돌아가기 ───────────────────────────────────
+        // ── 필러 / 룬 도감 / 가이드로 돌아가기 ─────────────────────────
+        inv.setItem(5, runeCodexButton());
         ItemStack filler = makeFiller(Material.BLACK_STAINED_GLASS_PANE);
-        for (int i = 5; i < 8; i++) inv.setItem(i, filler);
+        for (int i = 6; i < 8; i++) inv.setItem(i, filler);
         inv.setItem(8, backToGuideButton());
         ItemStack grayFiller = makeFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 45; i < 54; i++) inv.setItem(i, grayFiller);
@@ -206,6 +207,17 @@ public final class CodexGUI implements CodexOpener {
         if (meta != null) {
             meta.setDisplayName(name);
             meta.setLore(List.of("§7페이지 " + (targetPage + 1) + "로 이동"));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack runeCodexButton() {
+        ItemStack item = new ItemStack(Material.AMETHYST_SHARD);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName("§d§l🔮 룬 도감");
+            meta.setLore(List.of("§7등록된 모든 룬의 종류와", "§7전투 효과를 확인합니다.", "§e▶ 클릭하여 열기"));
             item.setItemMeta(meta);
         }
         return item;

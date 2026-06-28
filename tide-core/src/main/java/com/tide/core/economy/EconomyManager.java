@@ -48,8 +48,15 @@ public final class EconomyManager implements EconomyAPI, Listener {
                     "CREATE TABLE IF NOT EXISTS player_economy (" +
                             "uuid TEXT PRIMARY KEY, clam INTEGER NOT NULL DEFAULT 0, " +
                             "pearl INTEGER NOT NULL DEFAULT 0, rep INTEGER NOT NULL DEFAULT 0, " +
-                            "hard_mode INTEGER NOT NULL DEFAULT 0)")) {
+                            "hard_mode INTEGER NOT NULL DEFAULT 0, peak_gear_score INTEGER NOT NULL DEFAULT 0)")) {
                 statement.executeUpdate();
+            }
+            // Migration for pre-existing databases created before peak_gear_score existed.
+            try (PreparedStatement alter = connection.prepareStatement(
+                    "ALTER TABLE player_economy ADD COLUMN peak_gear_score INTEGER NOT NULL DEFAULT 0")) {
+                alter.executeUpdate();
+            } catch (SQLException ignored) {
+                // Column already exists.
             }
             plugin.getLogger().info("Successfully initialized SQLite database.");
         } catch (Throwable exception) {
@@ -105,27 +112,29 @@ public final class EconomyManager implements EconomyAPI, Listener {
                 long pearl = yamlConfig.getLong(key + ".pearl", 0);
                 int rep = yamlConfig.getInt(key + ".rep", 0);
                 boolean hardMode = yamlConfig.getBoolean(key + ".hard_mode", false);
-                return new PlayerEconomy(uuid, clam, pearl, rep, hardMode);
+                int peakGearScore = yamlConfig.getInt(key + ".peak_gear_score", 0);
+                return new PlayerEconomy(uuid, clam, pearl, rep, hardMode, peakGearScore);
             }
-            PlayerEconomy fresh = new PlayerEconomy(uuid, 0, 0, 0, false);
+            PlayerEconomy fresh = new PlayerEconomy(uuid, 0, 0, 0, false, 0);
             saveSync(fresh);
             return fresh;
         }
 
         try (PreparedStatement select = connection.prepareStatement(
-                "SELECT clam, pearl, rep, hard_mode FROM player_economy WHERE uuid = ?")) {
+                "SELECT clam, pearl, rep, hard_mode, peak_gear_score FROM player_economy WHERE uuid = ?")) {
             select.setString(1, uuid.toString());
             try (ResultSet resultSet = select.executeQuery()) {
                 if (resultSet.next()) {
                     return new PlayerEconomy(uuid, resultSet.getLong("clam"),
-                            resultSet.getLong("pearl"), resultSet.getInt("rep"), resultSet.getInt("hard_mode") != 0);
+                            resultSet.getLong("pearl"), resultSet.getInt("rep"), resultSet.getInt("hard_mode") != 0,
+                            resultSet.getInt("peak_gear_score"));
                 }
             }
         } catch (SQLException exception) {
             plugin.getLogger().severe("Failed to load economy profile for " + uuid + ": " + exception.getMessage());
         }
 
-        PlayerEconomy fresh = new PlayerEconomy(uuid, 0, 0, 0, false);
+        PlayerEconomy fresh = new PlayerEconomy(uuid, 0, 0, 0, false, 0);
         saveSync(fresh);
         return fresh;
     }
@@ -137,6 +146,7 @@ public final class EconomyManager implements EconomyAPI, Listener {
             yamlConfig.set(key + ".pearl", economy.getPearl());
             yamlConfig.set(key + ".rep", economy.getRep());
             yamlConfig.set(key + ".hard_mode", economy.isHardMode());
+            yamlConfig.set(key + ".peak_gear_score", economy.getPeakGearScore());
             try {
                 yamlConfig.save(yamlFile);
             } catch (IOException e) {
@@ -146,17 +156,19 @@ public final class EconomyManager implements EconomyAPI, Listener {
         }
 
         try (PreparedStatement upsert = connection.prepareStatement(
-                "INSERT INTO player_economy (uuid, clam, pearl, rep, hard_mode) VALUES (?, ?, ?, ?, ?) " +
-                        "ON CONFLICT(uuid) DO UPDATE SET clam = ?, pearl = ?, rep = ?, hard_mode = ?")) {
+                "INSERT INTO player_economy (uuid, clam, pearl, rep, hard_mode, peak_gear_score) VALUES (?, ?, ?, ?, ?, ?) " +
+                        "ON CONFLICT(uuid) DO UPDATE SET clam = ?, pearl = ?, rep = ?, hard_mode = ?, peak_gear_score = ?")) {
             upsert.setString(1, economy.getUuid().toString());
             upsert.setLong(2, economy.getClam());
             upsert.setLong(3, economy.getPearl());
             upsert.setInt(4, economy.getRep());
             upsert.setInt(5, economy.isHardMode() ? 1 : 0);
-            upsert.setLong(6, economy.getClam());
-            upsert.setLong(7, economy.getPearl());
-            upsert.setInt(8, economy.getRep());
-            upsert.setInt(9, economy.isHardMode() ? 1 : 0);
+            upsert.setInt(6, economy.getPeakGearScore());
+            upsert.setLong(7, economy.getClam());
+            upsert.setLong(8, economy.getPearl());
+            upsert.setInt(9, economy.getRep());
+            upsert.setInt(10, economy.isHardMode() ? 1 : 0);
+            upsert.setInt(11, economy.getPeakGearScore());
             upsert.executeUpdate();
         } catch (SQLException exception) {
             plugin.getLogger().severe("Failed to save economy profile for " + economy.getUuid() + ": " + exception.getMessage());
@@ -173,16 +185,18 @@ public final class EconomyManager implements EconomyAPI, Listener {
                     long pearl = yamlConfig.getLong(key + ".pearl", 0);
                     int rep = yamlConfig.getInt(key + ".rep", 0);
                     boolean hardMode = yamlConfig.getBoolean(key + ".hard_mode", false);
-                    all.put(uuid, new PlayerEconomy(uuid, clam, pearl, rep, hardMode));
+                    int peakGearScore = yamlConfig.getInt(key + ".peak_gear_score", 0);
+                    all.put(uuid, new PlayerEconomy(uuid, clam, pearl, rep, hardMode, peakGearScore));
                 } catch (IllegalArgumentException ignored) {}
             }
         } else if (connection != null) {
-            try (PreparedStatement select = connection.prepareStatement("SELECT uuid, clam, pearl, rep, hard_mode FROM player_economy");
+            try (PreparedStatement select = connection.prepareStatement("SELECT uuid, clam, pearl, rep, hard_mode, peak_gear_score FROM player_economy");
                  ResultSet resultSet = select.executeQuery()) {
                 while (resultSet.next()) {
                     UUID uuid = UUID.fromString(resultSet.getString("uuid"));
                     all.put(uuid, new PlayerEconomy(uuid, resultSet.getLong("clam"),
-                            resultSet.getLong("pearl"), resultSet.getInt("rep"), resultSet.getInt("hard_mode") != 0));
+                            resultSet.getLong("pearl"), resultSet.getInt("rep"), resultSet.getInt("hard_mode") != 0,
+                            resultSet.getInt("peak_gear_score")));
                 }
             } catch (SQLException exception) {
                 plugin.getLogger().severe("Failed to scan all player profiles: " + exception.getMessage());
@@ -273,6 +287,28 @@ public final class EconomyManager implements EconomyAPI, Listener {
         PlayerEconomy economy = getOrLoadCached(uuid);
         economy.setHardMode(hardMode);
         persistAsync(economy);
+    }
+
+    @Override
+    public int getPeakGearScore(UUID uuid) {
+        return getOrLoadCached(uuid).getPeakGearScore();
+    }
+
+    @Override
+    public void updatePeakGearScoreIfHigher(UUID uuid, int gearScore) {
+        PlayerEconomy economy = getOrLoadCached(uuid);
+        if (gearScore > economy.getPeakGearScore()) {
+            economy.setPeakGearScore(gearScore);
+            persistAsync(economy);
+        }
+    }
+
+    @Override
+    public double getProgressionIndex(UUID uuid) {
+        PlayerEconomy economy = getOrLoadCached(uuid);
+        double gearWeight = plugin.getConfig().getDouble("difficulty-scaling.pi-weights.gear-score", 0.7);
+        double repWeight = plugin.getConfig().getDouble("difficulty-scaling.pi-weights.reputation", 0.3);
+        return gearWeight * economy.getPeakGearScore() + repWeight * economy.getRep();
     }
 
     public void updatePlayerEconomy(UUID uuid, Long clam, Long pearl, Integer rep, Boolean hardMode) {

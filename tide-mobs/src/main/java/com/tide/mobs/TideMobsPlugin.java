@@ -84,10 +84,12 @@ public final class TideMobsPlugin extends JavaPlugin {
     private NemesisTracker nemesisTracker;
     private ContractManager contractManager;
     private ContractBoardGUI contractBoardGUI;
+    private com.tide.mobs.difficulty.WorldDifficultyRefreshTask worldDifficultyRefreshTask;
 
     @Override
     public void onEnable() {
         getDataFolder().mkdirs();
+        saveDefaultConfig();
 
         TideStateProvider tideStateProvider = lookupService(TideStateProvider.class);
         EconomyAPI economyAPI = lookupService(EconomyAPI.class);
@@ -97,6 +99,7 @@ public final class TideMobsPlugin extends JavaPlugin {
             return;
         }
         ItemFactory itemFactory = lookupService(ItemFactory.class);
+        com.tide.core.difficulty.DifficultyManager difficultyManager = lookupService(com.tide.core.difficulty.DifficultyManager.class);
 
         extractBundled();
 
@@ -111,17 +114,24 @@ public final class TideMobsPlugin extends JavaPlugin {
 
         EliteProcessor eliteProcessor = new EliteProcessor();
         getServer().getPluginManager().registerEvents(
-                new EliteSpawnListener(tideStateProvider, affixRegistry, eliteProcessor), this);
+                new EliteSpawnListener(this, tideStateProvider, affixRegistry, eliteProcessor, difficultyManager), this);
         getServer().getPluginManager().registerEvents(
-                new CustomMobSpawnListener(tideStateProvider, mobRegistry, affixRegistry, eliteProcessor, itemFactory, economyAPI), this);
+                new CustomMobSpawnListener(tideStateProvider, mobRegistry, affixRegistry, eliteProcessor, itemFactory, economyAPI, difficultyManager), this);
         getServer().getPluginManager().registerEvents(new AffixCombatListener(this), this);
-        getServer().getPluginManager().registerEvents(new EliteDropListener(itemFactory), this);
+        getServer().getPluginManager().registerEvents(new EliteDropListener(itemFactory, economyAPI, difficultyManager), this);
+
+        // Keeps already-spawned mobs' HP/damage in sync with the world's current
+        // difficulty (player progression, tide state) instead of freezing them at
+        // whatever the world looked like the instant they spawned.
+        this.worldDifficultyRefreshTask = new com.tide.mobs.difficulty.WorldDifficultyRefreshTask(this, difficultyManager);
+        worldDifficultyRefreshTask.start();
 
         BossFightManager bossFightManager = new BossFightManager(this, economyAPI);
         bossFightManager.setItemFactory(itemFactory);
         bossFightManager.start();
         getServer().getPluginManager().registerEvents(new AltarInteractListener(altarRegistry, bossFightManager), this);
         getServer().getPluginManager().registerEvents(new BossCombatListener(bossFightManager), this);
+        getServer().getPluginManager().registerEvents(new com.tide.mobs.boss.AltarWorldGenListener(this, altarRegistry), this);
 
         this.bountyManager = new BountyManager(questRegistry, economyAPI);
         if (getConfig().contains("bounty.daily-reset-interval-minutes")) {
@@ -171,6 +181,9 @@ public final class TideMobsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (worldDifficultyRefreshTask != null) {
+            worldDifficultyRefreshTask.stop();
+        }
         if (nemesisTracker != null) {
             nemesisTracker.stop();
         }

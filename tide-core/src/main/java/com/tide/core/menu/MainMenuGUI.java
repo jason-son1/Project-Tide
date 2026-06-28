@@ -1,6 +1,7 @@
 package com.tide.core.menu;
 
 import com.tide.core.economy.EconomyAPI;
+import com.tide.core.TideCorePlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -84,9 +85,48 @@ public class MainMenuGUI {
         // Slot 13: Player Head Stats
         inventory.setItem(13, createPlayerHead(player));
 
-        // Slots 14-15: decorative (former 딥마인 이동/소지품 전체판매 버튼 — 광산 이동은 /deepmine,
-        // 판매는 상점(Shop)으로 전면 대체되어 제거됨)
-        inventory.setItem(14, border);
+        // Slot 14: Tide State details
+        com.tide.core.tide.TideScheduler scheduler = TideCorePlugin.getInstance().getTideScheduler();
+        com.tide.core.tide.TideState state = scheduler.getCurrentState();
+        long secondsRemaining = scheduler.getSecondsUntilNextChange();
+        long hours = secondsRemaining / 3600;
+        long minutes = (secondsRemaining % 3600) / 60;
+        long seconds = secondsRemaining % 60;
+        String timeStr = String.format("%02d:%02d:%02d", hours, minutes, seconds);
+
+        java.util.List<String> tideLore = new java.util.ArrayList<>();
+        tideLore.add("§7");
+        tideLore.add("§7• 현재 상태: " + state.getDisplayName());
+        tideLore.add("§7• 남은 시간: §f" + timeStr);
+        tideLore.add("§7");
+        tideLore.add("§e[현재 조수의 효과]");
+        switch (state) {
+            case HIGH_TIDE -> {
+                tideLore.add("§7🌊 낚시 찌 대기 속도가 §a20%§7 단축됩니다.");
+                tideLore.add("§7🌊 바다/강 생물 처치 시 특수 전리품 획득율이 §a+15%§7 증가합니다.");
+            }
+            case LOW_TIDE -> {
+                tideLore.add("§7💨 딥 마인 던전에서 광석 채굴 시 드롭량이 §a+15%§7 증가합니다.");
+                tideLore.add("§7💨 물이 빠져 낚시 찌 대기 시간이 §c+10%§7 증가합니다.");
+            }
+            case SPRING_TIDE -> {
+                tideLore.add("§7🌟 조수 간만의 차가 극에 달해 몬스터 체력/공격력이 §c+25%§7 증가합니다.");
+                tideLore.add("§7🌟 일반/엘리트 몹 처치 시 명성(평판) 및 드롭율이 §a+50%§7 보너스를 얻습니다.");
+            }
+            case BLOOD_MOON -> {
+                tideLore.add("§7🩸 세상을 붉게 물들이는 달의 기운으로 모든 일반 몹이 엘리트(Elite)로 스폰될 확률이 §c+30%§7 증가합니다.");
+                tideLore.add("§7🩸 사망 패널티가 강화되어 무덤 생성 및 경험치 복구 비용이 §c2배§7가 됩니다.");
+            }
+            case BLOOD_TIDE -> {
+                tideLore.add("§7🩸🌟 심연의 힘과 달의 저주가 겹쳐 가장 위험한 밤이 찾아옵니다.");
+                tideLore.add("§7🩸🌟 모든 몬스터의 공격력이 §c+50%§7 증가하며 타격 시 무작위 디버프를 부여합니다.");
+                tideLore.add("§7🩸🌟 그에 비례해 엘리트 및 네메시스 보스의 전리품 드롭율이 §a+100%§7 폭증합니다.");
+            }
+        }
+        tideLore.add("§7");
+        tideLore.add("§8— 시간에 따라 변화하는 바다의 흐름을 주기적으로 관찰하세요 —");
+
+        inventory.setItem(14, createItem(Material.HEART_OF_THE_SEA, "§b§l🌊 현재 조수 상태", tideLore.toArray(new String[0])));
         inventory.setItem(15, border);
 
         // Slot 16: Admin Settings (visible/active if op or permission)
@@ -130,14 +170,28 @@ public class MainMenuGUI {
             String repTier = economyAPI.getRepTier(player.getUniqueId()).name();
             boolean hardMode = economyAPI.isHardMode(player.getUniqueId());
 
-            meta.setLore(Arrays.asList(
+            java.util.List<String> lore = new java.util.ArrayList<>(java.util.List.of(
                     "§7",
                     "§7• 보유 조개: §b" + clam + " 🪙",
                     "§7• 보유 진주: §d" + pearl + " 🔮",
                     "§7• 평판 등급: §e" + repTier + " §7(" + rep + "점)",
-                    "§7• 하드코어 상태: " + (hardMode ? "§c❤️ HARDCORE" : "§aNORMAL"),
-                    "§7"
+                    "§7• 하드코어 상태: " + (hardMode ? "§c❤️ HARDCORE" : "§aNORMAL")
             ));
+
+            int peakGs = economyAPI.getPeakGearScore(player.getUniqueId());
+            double pi = economyAPI.getProgressionIndex(player.getUniqueId());
+            lore.add("§7• 최고 전투력(Peak GS): §f" + peakGs);
+            lore.add("§7• 진행 지표(PI): §f" + String.format("%.1f", pi));
+
+            var difficultyManager = Bukkit.getServicesManager().load(com.tide.core.difficulty.DifficultyManager.class);
+            if (difficultyManager != null && difficultyManager.isEnabled()) {
+                var result = difficultyManager.resolve(player.getLocation());
+                lore.add("§7• 현재 위치 난이도 등급: §e" + result.bracket().id().toUpperCase());
+            }
+            lore.add("§8(정확한 현재 장비 전투력은 §f/power§8 명령어로 확인)");
+            lore.add("§7");
+
+            meta.setLore(lore);
             head.setItemMeta(meta);
         }
         return head;

@@ -36,6 +36,7 @@ public final class TideCorePlugin extends JavaPlugin {
     private GuideRegistry guideRegistry;
     private com.tide.core.lobby.LobbyManager lobbyManager;
     private GlowRangeManager glowRangeManager;
+    private com.tide.core.difficulty.DifficultyManager difficultyManager;
 
     private static final String[] SAMPLE_GUIDE_ENTRIES = {
             "tide_cycle", "tide_spring", "tide_bloodmoon",
@@ -82,6 +83,9 @@ public final class TideCorePlugin extends JavaPlugin {
         this.tideScheduler = new TideScheduler(this);
         this.tideScheduler.start();
         Bukkit.getServicesManager().register(TideStateProvider.class, tideScheduler, this, ServicePriority.Normal);
+
+        this.difficultyManager = new com.tide.core.difficulty.DifficultyManager(this, economyManager, tideScheduler);
+        Bukkit.getServicesManager().register(com.tide.core.difficulty.DifficultyManager.class, difficultyManager, this, ServicePriority.Normal);
         getServer().getPluginManager().registerEvents(new com.tide.core.tide.TideBossBarListener(tideScheduler), this);
 
         this.graveManager = new GraveManager(this);
@@ -140,7 +144,7 @@ public final class TideCorePlugin extends JavaPlugin {
         });
         getCommand("guide").setExecutor((sender, command, label, args) -> {
             if (sender instanceof org.bukkit.entity.Player player) {
-                guideGUI.openCategories(player);
+                guideGUI.openInteractiveBook(player);
                 return true;
             } else {
                 sender.sendMessage("플레이어만 사용할 수 있는 명령어입니다.");
@@ -232,6 +236,10 @@ public final class TideCorePlugin extends JavaPlugin {
 
     public com.tide.core.lobby.LobbyManager getLobbyManager() {
         return lobbyManager;
+    }
+
+    public com.tide.core.difficulty.DifficultyManager getDifficultyManager() {
+        return difficultyManager;
     }
 
     private void extractBundledGuides() {

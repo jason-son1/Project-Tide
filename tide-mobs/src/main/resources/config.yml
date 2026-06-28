@@ -1,0 +1,19 @@
+# TideMobs 전용 보조 설정. 핵심 PI/브래킷/배율 값은 TideCore의 config.yml
+# (difficulty-scaling 노드)에서 관리되며, 이 파일은 TideMobs(접두사) 고유의
+# 재가중치/시너지 조합만 다룹니다.
+difficulty-scaling:
+  # 이미 스폰된 몹의 HP/공격력을 월드의 현재 난이도와 동기화하는 주기(틱, 20틱=1초).
+  # 너무 짧으면 몹이 많은 서버에서 부하가 커지므로 기본 100틱(5초)을 권장합니다.
+  refresh-interval-ticks: 100
+  affix-weight-overrides:
+    t2:
+      염화의: 3.0
+      가시의: 3.0
+      보호막의: 3.0
+    t3:
+      염화의: 3.0
+      가시의: 3.0
+      보호막의: 3.0
+  guaranteed-synergy:
+    t4: ["분열의", "폭심의"]
+    t5: ["분열의", "폭심의"]

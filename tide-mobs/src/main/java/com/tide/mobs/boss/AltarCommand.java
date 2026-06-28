@@ -96,7 +96,9 @@ public final class AltarCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        Location loc = player.getLocation().getBlock().getLocation();
+        Location requestedLoc = player.getLocation().getBlock().getLocation();
+        Location loc = resolveGroundedLocation(requestedLoc);
+        boolean snapped = loc.getBlockY() != requestedLoc.getBlockY();
         String worldName = loc.getWorld().getName();
 
         File altarsDir = new File(plugin.getDataFolder(), "altars");
@@ -139,9 +141,13 @@ public final class AltarCommand implements CommandExecutor, TabCompleter {
         BossArenaBuilder.build(loc, bossType);
         AltarBuilder.build(loc);
 
-        player.sendMessage("§a[제단 생성] §f'" + id + "' 제단을 현재 위치에 생성했습니다.");
+        player.sendMessage("§a[제단 생성] §f'" + id + "' 제단을 생성했습니다.");
         player.sendMessage("§7보스 타입: §f" + bossType + "  §7필요 파편: §f" + fragments + "  §7권장 인원: §f" + partySize + "명");
-        player.sendMessage("§7보스 던전 아레나가 주변에 건축되었습니다.");
+        if (snapped) {
+            player.sendMessage("§7현재 위치가 지표면 근처라 자연스러운 던전처럼 보이도록 지하 §f" + loc.getBlockY() + "§7 높이로 자동 조정해 건축했습니다. §8(/altar tp " + id + "로 이동)");
+        } else {
+            player.sendMessage("§7보스 던전 아레나가 현재 위치 주변에 건축되었습니다.");
+        }
     }
 
     private void handleList(Player player) {
@@ -205,6 +211,24 @@ public final class AltarCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§e/altar tp <id>                              §7— 해당 제단으로 즉시 이동");
         player.sendMessage("§e/altar remove <id>                          §7— 제단 삭제");
         player.sendMessage("§7보스 타입: §fVOID_KNIGHT §7/ §fCORAL_QUEEN §7/ §fABYSSAL_TITAN");
+    }
+
+    /**
+     * If the player is standing at/above the natural surface (flying, on a mountain, in a boat,
+     * etc.), the arena would get carved out of thin air at whatever altitude they happened to be
+     * at — a floating stone sphere visible for miles. Snap down to the same "22 blocks
+     * underground" depth the automatic world-gen uses instead; if they're already well below the
+     * surface (deliberately exploring a cave to place it), leave their position alone.
+     */
+    private Location resolveGroundedLocation(Location loc) {
+        World world = loc.getWorld();
+        int highestY = world.getHighestBlockYAt(loc.getBlockX(), loc.getBlockZ());
+        if (loc.getBlockY() < highestY - 5) {
+            return loc;
+        }
+        int minPlayableY = world.getMinHeight() + 16;
+        int groundedY = Math.max(highestY - 22, minPlayableY);
+        return new Location(world, loc.getBlockX(), groundedY, loc.getBlockZ());
     }
 
     private int parseIntSafe(String s, int def) {

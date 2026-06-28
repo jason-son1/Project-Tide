@@ -1,3 +1,20 @@
+# 방어구의 방어도(GENERIC_ARMOR)는 바닐라 기준 직접 공격에만 적용되고, 독/마법/화염 등은
+# 거의 고정 피해(true damage)로 들어옵니다. 아래 목록의 피해 원인에 한해 방어도 비례
+# 감소율을 추가로 적용해, 장비 투자가 "자연 피해"에도 의미를 갖도록 합니다.
+armor-mitigation:
+  enabled: true
+  per-point-reduction: 0.04
+  max-reduction: 0.6
+  causes:
+    - POISON
+    - WITHER
+    - MAGIC
+    - FIRE
+    - FIRE_TICK
+    - LAVA
+    - HOT_FLOOR
+    - DRAGON_BREATH
+
 tidal_currents:
   transition-window-seconds: 20
   strength: 0.25

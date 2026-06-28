@@ -9,13 +9,15 @@ public final class PlayerEconomy {
     private long pearl;
     private int rep;
     private boolean hardMode;
+    private int peakGearScore;
 
-    public PlayerEconomy(UUID uuid, long clam, long pearl, int rep, boolean hardMode) {
+    public PlayerEconomy(UUID uuid, long clam, long pearl, int rep, boolean hardMode, int peakGearScore) {
         this.uuid = uuid;
         this.clam = clam;
         this.pearl = pearl;
         this.rep = rep;
         this.hardMode = hardMode;
+        this.peakGearScore = peakGearScore;
     }
 
     public UUID getUuid() {
@@ -52,5 +54,13 @@ public final class PlayerEconomy {
 
     public void setHardMode(boolean hardMode) {
         this.hardMode = hardMode;
+    }
+
+    public int getPeakGearScore() {
+        return peakGearScore;
+    }
+
+    public void setPeakGearScore(int peakGearScore) {
+        this.peakGearScore = Math.max(0, peakGearScore);
     }
 }

@@ -10,14 +10,16 @@ public final class AffixDefinition {
     private final double hpMultiplier;
     private final double damageMultiplier;
     private final Particle spawnParticle;
+    private final double weight;
 
     private AffixDefinition(String id, String displayName, double hpMultiplier,
-                             double damageMultiplier, Particle spawnParticle) {
+                             double damageMultiplier, Particle spawnParticle, double weight) {
         this.id = id;
         this.displayName = displayName;
         this.hpMultiplier = hpMultiplier;
         this.damageMultiplier = damageMultiplier;
         this.spawnParticle = spawnParticle;
+        this.weight = weight;
     }
 
     public static AffixDefinition parse(YamlConfiguration yaml) {
@@ -38,7 +40,8 @@ public final class AffixDefinition {
                 yaml.getString("display_name", id),
                 yaml.getDouble("hp_multiplier", 1.0),
                 yaml.getDouble("damage_multiplier", 1.0),
-                particle
+                particle,
+                yaml.getDouble("weight", 10.0)
         );
     }
 
@@ -60,5 +63,9 @@ public final class AffixDefinition {
 
     public Particle getSpawnParticle() {
         return spawnParticle;
+    }
+
+    public double getWeight() {
+        return weight;
     }
 }

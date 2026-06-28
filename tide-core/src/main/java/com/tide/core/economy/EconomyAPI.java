@@ -29,4 +29,14 @@ public interface EconomyAPI {
     boolean isHardMode(UUID uuid);
 
     void setHardMode(UUID uuid, boolean hardMode);
+
+    /** Highest GearScore this player has ever reached — never decreases, so
+     *  temporarily unequipping gear can't be used to dodge difficulty scaling. */
+    int getPeakGearScore(UUID uuid);
+
+    /** Raises the stored peak GearScore if {@code gearScore} exceeds it; a no-op otherwise. */
+    void updatePeakGearScoreIfHigher(UUID uuid, int gearScore);
+
+    /** Progression Index: w1*peakGearScore + w2*rep, weights from difficulty-scaling.pi-weights. */
+    double getProgressionIndex(UUID uuid);
 }
